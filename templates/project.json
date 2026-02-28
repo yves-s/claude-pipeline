@@ -1,0 +1,29 @@
+{
+  "name": "my-project",
+  "description": "Project description",
+  "stack": {
+    "language": "typescript",
+    "framework": "react",
+    "backend": "node",
+    "package_manager": "pnpm"
+  },
+  "build": {
+    "web": "pnpm run build",
+    "test": "pnpm run test"
+  },
+  "paths": {
+    "src": "src/",
+    "tests": "tests/"
+  },
+  "notion": {
+    "tasks_db": "",
+    "data_source": "",
+    "project_page": "",
+    "project_filter": ""
+  },
+  "conventions": {
+    "branch_prefix": "feature/",
+    "commit_format": "conventional",
+    "language": "de"
+  }
+}
