@@ -17,9 +17,7 @@
   },
   "notion": {
     "tasks_db": "",
-    "data_source": "",
-    "project_page": "",
-    "project_filter": ""
+    "project_id": null
   },
   "conventions": {
     "branch_prefix": "feature/",

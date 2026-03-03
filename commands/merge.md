@@ -10,7 +10,8 @@ Merged den aktuellen PR und schließt das Ticket ab. Nur nach Review verwenden.
 
 ## Konfiguration
 
-Lies `project.json` für Notion-IDs (`notion.tasks_db`, `notion.project_filter`).
+Lies `project.json` für Notion-Config (`notion.tasks_db`, `notion.project_filter`).
+Resolve die Data Source URL via `notion-fetch` auf `https://www.notion.so/{notion.tasks_db}` falls noch nicht in der Session gecached.
 
 ## Trigger
 

@@ -1,6 +1,6 @@
 ---
 name: ship
-description: Commit, Push, PR erstellen und Notion-Status auf "Ready to Review"
+description: Commit, Push, PR erstellen und Notion-Status auf "Ready to review"
 disable-model-invocation: true
 ---
 
@@ -10,7 +10,8 @@ Erstellt einen PR zur Review. Merged wird erst nach Freigabe via `/merge`.
 
 ## Konfiguration
 
-Lies `project.json` für Notion-IDs (`notion.tasks_db`, `notion.project_filter`).
+Lies `project.json` für Notion-Config (`notion.tasks_db`, `notion.project_filter`).
+Resolve die Data Source URL via `notion-fetch` auf `https://www.notion.so/{notion.tasks_db}` falls noch nicht in der Session gecached.
 
 ## Trigger
 
@@ -47,14 +48,14 @@ EOF
 )"
 ```
 
-### 4. Notion-Status auf "Ready to Review"
+### 4. Notion-Status auf "Ready to review"
 
-Setze den Status des aktuellen Tickets auf **"Ready to Review"** via `notion-update-page`.
+Setze den Status des aktuellen Tickets auf **"Ready to review"** via `notion-update-page`.
 Falls kein aktives Ticket bekannt: frage den User.
 
 ### 5. Bestätigung
 
-Zeige: PR-URL, Notion-Status ("Ready to Review"), Hinweis dass nach Review `/merge` oder "passt" zum Mergen nötig ist.
+Zeige: PR-URL, Notion-Status ("Ready to review"), Hinweis dass nach Review `/merge` oder "passt" zum Mergen nötig ist.
 
 ## Regeln
 

@@ -10,13 +10,19 @@ Zeige eine Übersicht des aktuellen Arbeitsstands.
 
 ## Konfiguration
 
-Lies `project.json` für Notion-IDs (`notion.tasks_db`, `notion.data_source`, `notion.project_filter`).
+Lies `project.json` für Notion-Config (`notion.tasks_db`, `notion.project_id`).
+Resolve die Data Source URL via `notion-fetch` auf `https://www.notion.so/{notion.tasks_db}` falls noch nicht in der Session gecached.
 
 ## Ausführung (direkt in der Hauptsession — kein Sub-Agent nötig)
 
 ### 1. Notion-Ticket
 
-Suche das aktuelle Ticket via Notion (Tasks DB ID aus `project.json`). Prüfe welches Ticket auf "In progress" steht. Zeige:
+Suche das aktuelle Ticket via Notion:
+1. Data Source URL resolven (siehe oben)
+2. `notion-search` mit Query "In progress" und der Data Source URL
+3. Nach Projekt filtern (`notion.project_id` → Projekt-Page resolven, gegen Projekt-Relation matchen)
+
+Zeige:
 - Ticket-Titel
 - Status
 - Priorität

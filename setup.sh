@@ -280,7 +280,7 @@ fi
 echo "Project configuration:"
 echo ""
 
-read -p "  Project name: " PROJECT_NAME
+read -p "  Project name (kebab-case, e.g. lb-website): " PROJECT_NAME
 PROJECT_NAME=${PROJECT_NAME:-myproject}
 
 read -p "  Description: " PROJECT_DESC
@@ -300,10 +300,24 @@ BRANCH_PREFIX=${BRANCH_PREFIX:-"feature/"}
 
 echo ""
 echo "Notion integration (leave empty to skip):"
-read -p "  Tasks DB ID: " NOTION_TASKS_DB
-read -p "  Data Source URL: " NOTION_DATA_SOURCE
-read -p "  Project Page ID: " NOTION_PROJECT_PAGE
-read -p "  Project filter name: " NOTION_PROJECT_FILTER
+echo "  Open your Tasks DB as full page and copy the URL."
+echo ""
+read -p "  Tasks DB URL: " NOTION_TASKS_URL
+read -p "  Project ID (Nummer aus P--11 → 11): " NOTION_PROJECT_ID
+
+# Extract DB ID from URL: last path segment before query params
+NOTION_DB_ID=""
+if [ -n "$NOTION_TASKS_URL" ]; then
+  # Extract the 32-char hex ID from the URL
+  NOTION_DB_ID=$(echo "$NOTION_TASKS_URL" | grep -oE '[0-9a-f]{32}' | head -1)
+  if [ -z "$NOTION_DB_ID" ]; then
+    echo ""
+    echo "  ⚠ Could not extract DB ID from URL. Please enter manually:"
+    read -p "  Tasks DB ID (32 hex chars): " NOTION_DB_ID
+  else
+    echo "  ✓ Extracted DB ID: $NOTION_DB_ID"
+  fi
+fi
 
 echo ""
 
@@ -334,13 +348,11 @@ if [ "$OVERWRITE_CONFIG" != "N" ]; then
   echo "Generating project.json..."
 
   NOTION_BLOCK=""
-  if [ -n "$NOTION_TASKS_DB" ]; then
+  if [ -n "$NOTION_DB_ID" ]; then
     NOTION_BLOCK=$(cat <<NOTION_EOF
   "notion": {
-    "tasks_db": "${NOTION_TASKS_DB}",
-    "data_source": "${NOTION_DATA_SOURCE}",
-    "project_page": "${NOTION_PROJECT_PAGE}",
-    "project_filter": "${NOTION_PROJECT_FILTER}"
+    "tasks_db": "${NOTION_DB_ID}",
+    "project_id": ${NOTION_PROJECT_ID:-null}
   },
 NOTION_EOF
 )
@@ -397,7 +409,7 @@ echo "================================================"
 echo ""
 echo "Next steps:"
 echo "  1. Edit CLAUDE.md — architecture, conventions, domain knowledge"
-echo "  2. Edit project.json — stack, paths, Notion IDs"
+echo "  2. Edit project.json — stack, paths"
 echo "  3. Add skills in .claude/skills/ (optional)"
 echo "  4. Test: claude → /status"
 echo ""

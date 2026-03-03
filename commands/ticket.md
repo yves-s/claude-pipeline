@@ -11,11 +11,19 @@ Nimm ein Ticket auf und starte den autonomen Entwicklungsflow.
 ## Konfiguration
 
 Lies `project.json` für Notion-IDs und Konventionen:
-- `notion.tasks_db` — Tasks Database ID
-- `notion.data_source` — Data Source URL
-- `notion.project_page` — Projekt Page ID
-- `notion.project_filter` — Projektname zum Filtern
+- `notion.tasks_db` — Tasks Database ID (32 hex chars)
+- `notion.project_id` — Projekt-ID (Nummer aus P--11 → 11)
 - `conventions.branch_prefix` — Branch-Prefix (z.B. "feature/")
+
+## Notion-Zugriff: Data Source resolven
+
+Die Data Source URL ist **nicht** in `project.json` gespeichert — sie wird zur Laufzeit aufgelöst:
+
+1. `notion-fetch` auf die DB URL: `https://www.notion.so/{notion.tasks_db}`
+2. Aus dem Response die `<data-source url="collection://...">` extrahieren
+3. Diese `collection://`-URL für alle weiteren Queries nutzen
+
+**Cache:** Merke dir die Data Source URL für die Dauer der Session — nicht bei jedem Query neu resolven.
 
 ## Ausführung
 
@@ -26,15 +34,18 @@ Falls kein Argument: Suche nach Tickets mit Status "Ready to develop".
 
 **Bei übergebener Ticket-ID (z.B. `T--162`):**
 1. Nummer extrahieren: `T--162` → `162`
-2. Direkt querien – **kein notion-search**:
-   - Data Source: aus `project.json` (`notion.data_source`)
-   - Filter: `WHERE "userDefined:ID" = 162`
-3. Ergebnis via `notion-fetch` mit der zurückgegebenen Page-URL laden
+2. `notion-search` mit der resolved Data Source URL
+   - Query: die Ticket-Nummer
+   - Ergebnis via `notion-fetch` mit der zurückgegebenen Page-URL laden
+3. Prüfe dass `userDefined:ID` matcht
 
 **Bei fehlendem Argument (Suche nach "Ready to develop"):**
-1. `notion-search` mit Query "Ready to develop" und `data_source_url` aus `project.json`
+1. `notion-search` mit Query "Ready to develop" und der resolved Data Source URL
 2. Ergebnisse via `notion-fetch` laden (Top 3-5)
-3. Nach Projekt filtern (Wert aus `project.json` → `notion.project_filter`)
+3. Nach Projekt filtern: Das Feld "Projekt" ist eine **Relation**. Um zu filtern:
+   a. Projekte-DB resolven (aus dem Relation-Schema der Tasks-DB)
+   b. Projekt-Page finden: `WHERE "userDefined:ID" = {notion.project_id}`
+   c. Nur Tasks behalten, deren "Projekt"-Relation diese Page-URL enthält
 4. Status "Ready to develop" im Properties-Objekt prüfen
 
 ### 2. Ticket auswählen
@@ -44,6 +55,8 @@ Falls kein Argument: Suche nach Tickets mit Status "Ready to develop".
 - **Keines:** User informieren
 
 ### 3. Notion auf "In progress" + Feature-Branch
+
+Status des Tickets via `notion-update-page` auf **"In progress"** setzen.
 
 ```bash
 git checkout main && git pull origin main
@@ -88,6 +101,6 @@ Direkt in der Hauptsession (kein Agent):
 1. Commit — Conventional Commits, gezielt stagen
 2. Push — `git push -u origin {branch}`
 3. PR — `gh pr create` mit Summary + Test Plan
-4. Notion — Status auf "Ready to Review"
+4. Notion — Status auf "Ready to review"
 
 **NICHT automatisch mergen.** Der PR bleibt offen bis der User ihn freigibt (via `/merge` oder "passt").

@@ -10,29 +10,85 @@ Ein Framework aus generischen Agents, Commands und einem Pipeline-Runner, das in
 - **4 Slash-Commands** (/ticket, /ship, /merge, /status)
 - **Pipeline-Runner** für VPS/CI-Ausführung
 - **Notion-Integration** für Ticket-Management
+- **Update-Mechanismus** mit Versionstracking und Dry-Run-Preview
 
 ## Quick Start
 
 ```bash
-# 1. In dein Projekt wechseln
+# 1. Framework klonen (einmalig)
+git clone https://github.com/yves-s/claude-pipeline.git ~/claude-pipeline
+
+# 2. In dein Projekt wechseln
 cd /path/to/your/project
 
-# 2. Setup ausführen
-/path/to/claude-pipeline/setup.sh
+# 3. Setup ausführen (interaktiv)
+~/claude-pipeline/setup.sh
 
-# 3. CLAUDE.md anpassen (Architektur, Konventionen)
-# 4. project.json vervollständigen (Stack, Pfade, Notion-IDs)
+# 4. CLAUDE.md anpassen (Architektur, Konventionen)
+# 5. project.json vervollständigen (Stack, Pfade)
 
-# 5. Loslegen
+# 6. Loslegen
 claude
 > /ticket
 ```
 
+## Setup & Update
+
+### Erstinstallation
+
+```bash
+cd /path/to/your/project
+~/claude-pipeline/setup.sh
+```
+
+Interaktiver Wizard: fragt Projektname, Package Manager, Build-Commands, Notion-URL ab. Erzeugt alle nötigen Dateien.
+
+### Update
+
+Framework-Agents oder -Commands verbessert? In jedes Projekt pushen:
+
+```bash
+cd /path/to/your/project
+~/claude-pipeline/setup.sh --update
+```
+
+Das Update überschreibt **nur Framework-Files** und fasst projektspezifische Dateien nie an:
+
+| Wird aktualisiert | Wird nie überschrieben |
+|---|---|
+| `.claude/agents/*` | `CLAUDE.md` |
+| `.claude/commands/*` | `project.json` |
+| `.claude/settings.json` | `.claude/skills/*` |
+| `.pipeline/run.sh` | |
+
+Agents oder Commands, die aus dem Framework entfernt wurden, werden auch im Projekt aufgeräumt.
+
+### Dry Run
+
+Vorher prüfen was sich ändern würde:
+
+```bash
+~/claude-pipeline/setup.sh --update --dry-run
+```
+
+Zeigt welche Files neu, geändert oder entfernt werden — ohne etwas zu ändern.
+
+### Versionstracking
+
+Jede Installation schreibt die Framework-Version nach `.claude/.pipeline-version`. Beim Update siehst du:
+
+```
+Installed: abc1234 (2026-02-28)
+Available: def5678 (2026-03-02)
+```
+
 ## Struktur
+
+### Framework (dieses Repo)
 
 ```
 claude-pipeline/
-├── setup.sh                # Installiert Framework in ein Projekt
+├── setup.sh                # Install + Update Script
 ├── agents/                 # Generische Agent-Definitionen
 │   ├── orchestrator.md     # Plant, delegiert, shippt
 │   ├── backend.md          # API, Hooks, Business Logic
@@ -54,9 +110,7 @@ claude-pipeline/
     └── CLAUDE.md           # Template für Projektinstruktionen
 ```
 
-## Nach dem Setup
-
-Das Framework installiert folgende Dateien in deinem Projekt:
+### Zielprojekt (nach Setup)
 
 ```
 your-project/
@@ -66,7 +120,8 @@ your-project/
 │   ├── agents/             # Agent-Definitionen (vom Framework)
 │   ├── commands/           # Slash-Commands (vom Framework)
 │   ├── settings.json       # Permissions
-│   └── skills/             # Projektspezifische Skills (optional, selbst anlegen)
+│   ├── skills/             # Projektspezifische Skills (optional)
+│   └── .pipeline-version   # Installierte Framework-Version
 └── .pipeline/
     └── run.sh              # Pipeline Runner
 ```
@@ -79,13 +134,16 @@ Zentrale Konfigurationsdatei. Alle Agents und Commands lesen hieraus.
 
 | Feld | Zweck |
 |------|-------|
-| `name` | Projektname |
+| `name` | Projektname (kebab-case) |
 | `stack` | Tech-Stack (Framework, DB, etc.) |
 | `build.web` | Build-Command |
 | `build.test` | Test-Command |
 | `paths` | Wichtige Verzeichnisse |
-| `notion.*` | Notion Tasks DB IDs |
+| `notion.tasks_db` | Database ID (32 hex chars aus der Notion-URL) |
+| `notion.project_filter` | Projektname (exakter Match gegen Projekt-Relation) |
 | `conventions` | Branch-Prefix, Commit-Format |
+
+Die **Data Source URL** wird zur Laufzeit automatisch aufgelöst — sie steht nicht in der Config. Claude resolved sie beim ersten Notion-Zugriff via `notion-fetch` auf die DB und cached sie für die Session.
 
 ### CLAUDE.md
 
@@ -103,7 +161,7 @@ Projektspezifische Instruktionen die Agents als Kontext nutzen:
   ├── Phase 2: Agents parallel (data-engineer, backend, frontend)
   ├── Phase 3: Build-Check (Bash)
   ├── Phase 4: Review (QA-Agent, ggf. Security-Agent)
-  └── Phase 5: /ship (Commit → PR → Notion "Ready to Review") ← STOPP
+  └── Phase 5: /ship (Commit → PR → Notion "Ready to review") ← STOPP
 
 User reviewed PR → "passt" / /merge
   └── /merge (Squash Merge → Delete Branch → Notion "Done")
@@ -116,9 +174,16 @@ User reviewed PR → "passt" / /merge
 # → claude --agent orchestrator --dangerously-skip-permissions
 ```
 
-## Update
+Der Pipeline-Runner gibt am Ende JSON für n8n aus:
 
-Um die Agents/Commands zu aktualisieren, `setup.sh` erneut ausführen. Bestehende `CLAUDE.md` und `project.json` werden nicht überschrieben.
+```json
+{
+  "status": "completed",
+  "ticket_id": "T--162",
+  "branch": "feature/T--162-kurzbeschreibung",
+  "project": "my-project"
+}
+```
 
 ## Kosten
 
