@@ -5,6 +5,7 @@ tools: Read, Write, Edit, Bash, Grep, Glob
 model: inherit
 permissionMode: bypassPermissions
 skills:
+  - design
   - frontend-design
 ---
 

@@ -4,6 +4,8 @@ description: Backend-Entwickler für API-Endpoints, Shared Hooks und Business Lo
 tools: Read, Write, Edit, Bash, Grep, Glob
 model: opus
 permissionMode: bypassPermissions
+skills:
+  - backend
 ---
 
 # Backend Developer

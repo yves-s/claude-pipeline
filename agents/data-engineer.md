@@ -4,6 +4,8 @@ description: Datenbank-Spezialist für Migrations, RLS Policies, Schema-Änderun
 tools: Read, Write, Edit, Bash, Grep, Glob
 model: inherit
 permissionMode: bypassPermissions
+skills:
+  - data-engineer
 ---
 
 # Data Engineer
