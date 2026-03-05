@@ -36,9 +36,11 @@ Dieses Repo nutzt ein Multi-Agent-System. Ob lokal oder auf dem Server:
 4. **Commit + PR** am Ende des Workflows → Notion "Ready to review"
 5. **Merge erst nach Freigabe** — User sagt "passt"/"merge" oder `/merge`
 
-## Notion-Workflow (PFLICHT)
+## Notion-Workflow
 
-Notion-Status-Updates sind **nicht optional**. Sie MÜSSEN bei jedem Workflow-Schritt ausgeführt werden:
+> Nur aktiv wenn `notion.tasks_db` in `project.json` gesetzt ist. Ohne Notion werden diese Schritte übersprungen.
+
+Falls Notion konfiguriert ist, sind Status-Updates **PFLICHT**:
 
 | Workflow-Schritt | Notion-Status | Wann |
 |---|---|---|

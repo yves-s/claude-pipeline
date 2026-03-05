@@ -10,12 +10,18 @@ Nimm ein Ticket auf und starte den autonomen Entwicklungsflow.
 
 ## Konfiguration
 
-Lies `project.json` für Notion-IDs und Konventionen:
-- `notion.tasks_db` — Tasks Database ID (32 hex chars)
-- `notion.project_id` — Projekt-ID (Nummer aus P--11 → 11)
+Lies `project.json` für Konventionen:
 - `conventions.branch_prefix` — Branch-Prefix (z.B. "feature/")
 
+**Notion (optional):** Falls `notion.tasks_db` in `project.json` gesetzt ist:
+- `notion.tasks_db` — Tasks Database ID (32 hex chars)
+- `notion.project_id` — Projekt-ID (Nummer aus P--11 → 11)
+
+Falls `notion.tasks_db` **leer oder nicht vorhanden** ist: Alle Notion-Schritte in diesem Command überspringen. Ticket-Infos werden dann per `$ARGUMENTS` übergeben.
+
 ## Notion-Zugriff: Data Source resolven
+
+> **Nur wenn Notion konfiguriert ist** (`notion.tasks_db` gesetzt).
 
 Die Data Source URL ist **nicht** in `project.json` gespeichert — sie wird zur Laufzeit aufgelöst:
 
@@ -28,6 +34,8 @@ Die Data Source URL ist **nicht** in `project.json` gespeichert — sie wird zur
 ## Ausführung
 
 ### 1. Ticket finden
+
+> **Ohne Notion:** Nutze `$ARGUMENTS` direkt als Ticket-ID und Beschreibung. Springe zu Schritt 3 (nur Feature-Branch).
 
 Falls `$ARGUMENTS` übergeben: Nutze als Ticket-ID oder Suchbegriff.
 Falls kein Argument: Suche nach Tickets mit Status "Ready to develop".
@@ -56,7 +64,7 @@ Falls kein Argument: Suche nach Tickets mit Status "Ready to develop".
 
 ### 3. Notion auf "In progress" + Feature-Branch
 
-**PFLICHT — NICHT ÜBERSPRINGEN:**
+**Falls Notion konfiguriert — PFLICHT, NICHT ÜBERSPRINGEN:**
 Status des Tickets via `notion-update-page` auf **"In progress"** setzen.
 Warte auf die Bestätigung, dass das Update erfolgreich war, bevor du weitermachst.
 
@@ -103,13 +111,13 @@ Direkt in der Hauptsession (kein Agent):
 1. Commit — Conventional Commits, gezielt stagen
 2. Push — `git push -u origin {branch}`
 3. PR — `gh pr create` mit Summary + Test Plan
-4. **PFLICHT:** Notion — Status auf **"Ready to review"** via `notion-update-page`
+4. **Falls Notion konfiguriert — PFLICHT:** Notion-Status auf **"Ready to review"** via `notion-update-page`
 
 **NICHT automatisch mergen.** Der PR bleibt offen bis der User ihn freigibt (via `/merge` oder "passt").
 
 ### Checkliste vor Abschluss
 
 Bevor du den Workflow als fertig meldest, prüfe:
-- [ ] Notion-Status wurde auf "In progress" gesetzt (Schritt 3)
-- [ ] Notion-Status wurde auf "Ready to review" gesetzt (Schritt 8.4)
-Falls ein Status-Update fehlt: **JETZT nachholen**, nicht überspringen.
+- [ ] **Falls Notion konfiguriert:** Status wurde auf "In progress" gesetzt (Schritt 3)
+- [ ] **Falls Notion konfiguriert:** Status wurde auf "Ready to review" gesetzt (Schritt 8.4)
+Falls ein Notion-Status-Update fehlt und Notion konfiguriert ist: **JETZT nachholen**, nicht überspringen.
