@@ -33,8 +33,20 @@ Dieses Repo nutzt ein Multi-Agent-System. Ob lokal oder auf dem Server:
 1. **Arbeite autonom** — keine interaktiven Fragen, keine manuellen Bestätigungen
 2. **Plane selbst** — kein Planner-Agent, keine Spec-Datei. Lies betroffene Dateien direkt und gib Agents konkrete Instruktionen
 3. **Wenn unklar:** Konservative Lösung wählen, nicht raten
-4. **Commit + PR** am Ende des Workflows → Notion "Ready to Review"
+4. **Commit + PR** am Ende des Workflows → Notion "Ready to review"
 5. **Merge erst nach Freigabe** — User sagt "passt"/"merge" oder `/merge`
+
+## Notion-Workflow (PFLICHT)
+
+Notion-Status-Updates sind **nicht optional**. Sie MÜSSEN bei jedem Workflow-Schritt ausgeführt werden:
+
+| Workflow-Schritt | Notion-Status | Wann |
+|---|---|---|
+| `/ticket` — Ticket aufnehmen | **"In progress"** | Sofort nach Ticket-Auswahl, VOR dem Coding |
+| `/ship` — PR erstellen | **"Ready to review"** | Nach PR-Erstellung |
+| `/merge` — PR mergen | **"Done"** | Nach erfolgreichem Merge |
+
+**Überspringe KEINEN dieser Schritte.** Falls ein Notion-Update fehlschlägt, versuche es erneut oder informiere den User.
 
 ---
 

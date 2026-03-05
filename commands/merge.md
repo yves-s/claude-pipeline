@@ -45,12 +45,16 @@ git checkout main && git pull origin main
 
 ### 4. Notion-Status auf "Done"
 
+**PFLICHT — NICHT ÜBERSPRINGEN:**
 Setze den Status des aktuellen Tickets auf **"Done"** via `notion-update-page`.
 Falls kein aktives Ticket bekannt: frage den User.
+Warte auf die Bestätigung, dass das Update erfolgreich war.
 
 ### 5. Bestätigung
 
-Zeige: PR-URL, Merge-Status, Notion-Status ("Done").
+Zeige:
+- PR-URL + Merge-Status
+- **Notion-Status: "Done" ✓** (bestätige explizit, dass es gesetzt wurde)
 
 ## Regeln
 

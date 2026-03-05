@@ -50,12 +50,17 @@ EOF
 
 ### 4. Notion-Status auf "Ready to review"
 
+**PFLICHT — NICHT ÜBERSPRINGEN:**
 Setze den Status des aktuellen Tickets auf **"Ready to review"** via `notion-update-page`.
 Falls kein aktives Ticket bekannt: frage den User.
+Warte auf die Bestätigung, dass das Update erfolgreich war.
 
 ### 5. Bestätigung
 
-Zeige: PR-URL, Notion-Status ("Ready to review"), Hinweis dass nach Review `/merge` oder "passt" zum Mergen nötig ist.
+Zeige:
+- PR-URL
+- **Notion-Status: "Ready to review" ✓** (bestätige explizit, dass es gesetzt wurde)
+- Hinweis: nach Review `/merge` oder "passt" zum Mergen
 
 ## Regeln
 

@@ -56,7 +56,9 @@ Falls kein Argument: Suche nach Tickets mit Status "Ready to develop".
 
 ### 3. Notion auf "In progress" + Feature-Branch
 
+**PFLICHT — NICHT ÜBERSPRINGEN:**
 Status des Tickets via `notion-update-page` auf **"In progress"** setzen.
+Warte auf die Bestätigung, dass das Update erfolgreich war, bevor du weitermachst.
 
 ```bash
 git checkout main && git pull origin main
@@ -101,6 +103,13 @@ Direkt in der Hauptsession (kein Agent):
 1. Commit — Conventional Commits, gezielt stagen
 2. Push — `git push -u origin {branch}`
 3. PR — `gh pr create` mit Summary + Test Plan
-4. Notion — Status auf "Ready to review"
+4. **PFLICHT:** Notion — Status auf **"Ready to review"** via `notion-update-page`
 
 **NICHT automatisch mergen.** Der PR bleibt offen bis der User ihn freigibt (via `/merge` oder "passt").
+
+### Checkliste vor Abschluss
+
+Bevor du den Workflow als fertig meldest, prüfe:
+- [ ] Notion-Status wurde auf "In progress" gesetzt (Schritt 3)
+- [ ] Notion-Status wurde auf "Ready to review" gesetzt (Schritt 8.4)
+Falls ein Status-Update fehlt: **JETZT nachholen**, nicht überspringen.
