@@ -66,6 +66,7 @@ Das Update überschreibt **nur Framework-Files** und fasst projektspezifische Da
 | `.claude/agents/*` | `CLAUDE.md` |
 | `.claude/commands/*` | `project.json` |
 | `.claude/skills/<framework-skill>.md` | `.claude/skills/<eigener-skill>.md` |
+| `.claude/scripts/*` | |
 | `.claude/settings.json` | |
 | `.pipeline/run.sh` | |
 
@@ -126,8 +127,12 @@ claude-pipeline/
 │   ├── using-git-worktrees.md      # Isolierte Workspaces
 │   ├── design.md                   # Design-Token-Standards, Visual QA
 │   ├── frontend-design.md          # Component-Implementierung
+│   ├── creative-design.md          # Greenfield-Design, Anti-AI-Slop
+│   ├── webapp-testing.md           # Playwright-basiertes visuelles Testing
 │   ├── backend.md                  # API-Patterns, Error Handling
 │   └── data-engineer.md            # Migration-Safety, RLS
+├── scripts/                # Utility-Scripts (für Skills)
+│   └── with_server.py      # Server-Lifecycle für Playwright-Tests
 ├── pipeline/
 │   └── run.sh              # VPS/CI Pipeline Runner
 ├── settings.json           # Template .claude/settings.json
@@ -150,6 +155,8 @@ your-project/
 │   │   ├── backend.md              # ← vom Framework
 │   │   ├── mein-custom-skill.md    # ← projektspezifisch (wird NIE angefasst)
 │   │   └── ...
+│   ├── scripts/            # Utility-Scripts (vom Framework)
+│   │   └── with_server.py          # Server-Lifecycle für Playwright-Tests
 │   ├── settings.json       # Permissions (vom Framework)
 │   └── .pipeline-version   # Installierte Framework-Version
 └── .pipeline/

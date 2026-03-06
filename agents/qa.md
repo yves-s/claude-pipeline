@@ -4,6 +4,8 @@ description: QA Engineer für Acceptance-Criteria-Verifikation und Tests. Use af
 tools: Read, Write, Edit, Bash, Grep, Glob
 model: inherit
 permissionMode: bypassPermissions
+skills:
+  - webapp-testing
 ---
 
 # QA Engineer
@@ -33,15 +35,23 @@ Für jedes AC aus dem Orchestrator-Prompt:
 
 Bei kritischen Security-Issues: sofort fixen mit `// SECURITY:` Kommentar.
 
-### 3. Tests schreiben (falls sinnvoll)
+### 3. Visuelles Testing (bei Frontend-Änderungen)
+
+Wenn die Aufgabe UI-Änderungen enthält, nutze den `webapp-testing` Skill:
+1. Server starten mit `scripts/with_server.py`
+2. Screenshot machen und per Read Tool prüfen
+3. Console-Logs auf Errors prüfen
+4. Interaktive Elemente verifizieren (Click, Fill, Navigation)
+
+### 4. Tests schreiben (falls sinnvoll)
 
 Lies Test-Framework und Pfade aus `CLAUDE.md`/`project.json`.
 
-### 4. Tests ausführen
+### 5. Tests ausführen
 
 Führe den Test-Command aus `project.json` aus.
 
-### 5. Ergebnis
+### 6. Ergebnis
 
 ```
 ## AC Verification

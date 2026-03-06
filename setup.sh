@@ -18,6 +18,7 @@
 #   .claude/agents/*          Agent definitions
 #   .claude/commands/*        Slash commands
 #   .claude/skills/<name>.md  Framework skills (only framework-owned files)
+#   .claude/scripts/*         Utility scripts (for skills)
 #   .claude/settings.json     Permissions
 #   .pipeline/run.sh          Pipeline runner
 #   .claude/.pipeline-version Version tracking
@@ -198,6 +199,15 @@ if [ "$MODE" = "update" ]; then
     diff_file "$f" "$PROJECT_DIR/.claude/skills/$fname" ".claude/skills/$fname"
   done
 
+  # Scripts
+  if [ -d "$FRAMEWORK_DIR/scripts" ]; then
+    for f in "$FRAMEWORK_DIR/scripts/"*; do
+      [ -f "$f" ] || continue
+      fname=$(basename "$f")
+      diff_file "$f" "$PROJECT_DIR/.claude/scripts/$fname" ".claude/scripts/$fname"
+    done
+  fi
+
   # Settings
   diff_file "$FRAMEWORK_DIR/settings.json" "$PROJECT_DIR/.claude/settings.json" ".claude/settings.json"
 
@@ -252,6 +262,16 @@ if [ "$MODE" = "update" ]; then
   mkdir -p "$PROJECT_DIR/.claude/skills"
   cp "$FRAMEWORK_DIR/skills/"*.md "$PROJECT_DIR/.claude/skills/"
   echo "  ✓ $(ls "$FRAMEWORK_DIR/skills/"*.md | wc -l | tr -d ' ') framework skills (project-specific skills untouched)"
+
+  echo "Updating scripts..."
+  if [ -d "$FRAMEWORK_DIR/scripts" ]; then
+    mkdir -p "$PROJECT_DIR/.claude/scripts"
+    cp "$FRAMEWORK_DIR/scripts/"* "$PROJECT_DIR/.claude/scripts/"
+    chmod +x "$PROJECT_DIR/.claude/scripts/"*.py 2>/dev/null || true
+    echo "  ✓ $(ls "$FRAMEWORK_DIR/scripts/"* 2>/dev/null | wc -l | tr -d ' ') scripts"
+  else
+    echo "  ~ no scripts to update"
+  fi
 
   echo "Updating pipeline runner..."
   cp "$FRAMEWORK_DIR/pipeline/run.sh" "$PROJECT_DIR/.pipeline/run.sh"
@@ -357,6 +377,15 @@ echo "Installing skills..."
 mkdir -p "$PROJECT_DIR/.claude/skills"
 cp "$FRAMEWORK_DIR/skills/"*.md "$PROJECT_DIR/.claude/skills/"
 echo "  ✓ $(ls "$FRAMEWORK_DIR/skills/"*.md | wc -l | tr -d ' ') skills"
+
+# --- Copy scripts ---
+if [ -d "$FRAMEWORK_DIR/scripts" ]; then
+  echo "Installing scripts..."
+  mkdir -p "$PROJECT_DIR/.claude/scripts"
+  cp "$FRAMEWORK_DIR/scripts/"* "$PROJECT_DIR/.claude/scripts/"
+  chmod +x "$PROJECT_DIR/.claude/scripts/"*.py 2>/dev/null || true
+  echo "  ✓ $(ls "$FRAMEWORK_DIR/scripts/"* 2>/dev/null | wc -l | tr -d ' ') scripts"
+fi
 
 # --- Generate project.json ---
 if [ "$OVERWRITE_CONFIG" != "N" ]; then
