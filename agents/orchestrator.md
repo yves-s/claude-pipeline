@@ -89,9 +89,9 @@ Ergebnis: PASS/FAIL pro AC + Security-Status
 
 Standardmäßig übernimmt der QA-Agent den Security-Quick-Check. Für sicherheitskritische Änderungen (Auth-Flows, RLS-Policies, neue Endpoints) kann ein separater Security-Agent gespawnt werden.
 
-### Phase 5: Ship (ohne Merge)
+### Phase 5: Ship (ohne Merge, KEINE Rückfragen)
 
-Direkt in dieser Session (kein Sub-Agent):
+Direkt in dieser Session (kein Sub-Agent). **Alle Schritte autonom durchführen — nicht fragen ob committed/gepusht/PR erstellt werden soll.**
 
 1. **Changelog aktualisieren** — Füge einen neuen Eintrag in `CHANGELOG.md` ein (direkt nach dem Kommentar `<!-- Neue Einträge werden hier eingefügt (neueste oben) -->`). Falls die Datei nicht existiert, überspringe diesen Schritt. Format:
 

@@ -73,3 +73,5 @@ src/
 ## Konversationelle Trigger
 
 **"passt"**, **"done"**, **"fertig"**, **"klappt"**, **"sieht gut aus"** → automatisch `/merge` ausführen
+
+**Wichtig:** `/ship` und `/merge` laufen **vollständig autonom** — keine Rückfragen bei Commit, Push, PR oder Merge. Der User hat seine Freigabe bereits gegeben.

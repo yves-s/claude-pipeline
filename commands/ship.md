@@ -1,12 +1,14 @@
 ---
 name: ship
-description: Commit, Push, PR erstellen und Notion-Status auf "Ready to review"
+description: Commit, Push, PR erstellen und Notion-Status auf "Ready to review". Vollständig autonom, keine Rückfragen.
 disable-model-invocation: true
 ---
 
 # /ship — Commit, Push, PR erstellen
 
-Erstellt einen PR zur Review. Merged wird erst nach Freigabe via `/merge`.
+Erstellt einen PR zur Review. Merged wird erst nach Freigabe via `/merge` oder "passt".
+
+**KEINE RÜCKFRAGEN. KEINE BESTÄTIGUNGEN. EINFACH MACHEN.**
 
 ## Konfiguration
 
@@ -19,7 +21,7 @@ Wird ausgeführt wenn:
 - Der User `/ship` eingibt
 - Phase 5 des Orchestrator-Workflows erreicht ist
 
-## Ausführung (direkt in der Hauptsession)
+## Ausführung (direkt in der Hauptsession, KEINE Rückfragen)
 
 ### 1. Commit
 
@@ -27,11 +29,15 @@ Wird ausgeführt wenn:
 - Conventional Commit: `feat(#{ticket}): {kurze englische Beschreibung}`
 - `Co-Authored-By: Claude Opus 4.6 <noreply@anthropic.com>`
 
+**Nicht fragen ob committed werden soll. Einfach committen.**
+
 ### 2. Push
 
 ```bash
 git push -u origin {branch-name}
 ```
+
+**Nicht fragen ob gepusht werden soll. Einfach pushen.**
 
 ### 3. PR erstellen
 
@@ -48,6 +54,8 @@ EOF
 )"
 ```
 
+**Nicht fragen ob ein PR erstellt werden soll. Einfach erstellen.**
+
 ### 4. Notion-Status auf "Ready to review"
 
 > **Nur wenn Notion konfiguriert ist** (`notion.tasks_db` in `project.json` gesetzt).
@@ -55,17 +63,22 @@ EOF
 **Falls Notion konfiguriert — PFLICHT, NICHT ÜBERSPRINGEN:**
 Setze den Status des aktuellen Tickets auf **"Ready to review"** via `notion-update-page`.
 Falls kein aktives Ticket bekannt: frage den User.
-Warte auf die Bestätigung, dass das Update erfolgreich war.
 
 ### 5. Bestätigung
 
-Zeige:
-- PR-URL
-- **Falls Notion:** Notion-Status "Ready to review" ✓ (bestätige explizit)
-- Hinweis: nach Review `/merge` oder "passt" zum Mergen
+Zeige eine einzige Zusammenfassung am Ende:
+
+```
+Shipped: feat(#T--162): Add user settings page
+PR: https://github.com/...
+Notion: Ready to review ✓ (falls konfiguriert)
+
+→ Nach Review: "passt" oder /merge zum Mergen
+```
 
 ## Regeln
 
+- **KEINE RÜCKFRAGEN** — alle Schritte autonom durchführen
 - NIEMALS `git add -A` — immer gezielt stagen
 - NIEMALS `--force` pushen
 - Bei Pre-Commit Hook Failure: fixen und NEUEN Commit (nicht amend)
