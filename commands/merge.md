@@ -1,6 +1,6 @@
 ---
 name: merge
-description: Alles abschliessen — commit, push, PR, merge, Notion "Done". Vollständig autonom, keine Rückfragen.
+description: Alles abschliessen — commit, push, PR, merge, Supabase "done". Vollständig autonom, keine Rückfragen.
 disable-model-invocation: true
 ---
 
@@ -12,8 +12,7 @@ Schliesst die aktuelle Arbeit vollständig ab. Führt alle nötigen Schritte aut
 
 ## Konfiguration
 
-Lies `project.json`. **Notion ist optional** — nur ausführen wenn `notion.tasks_db` gesetzt ist.
-Falls Notion konfiguriert: Resolve die Data Source URL via `notion-fetch` auf `https://www.notion.so/{notion.tasks_db}` falls noch nicht in der Session gecached.
+Lies `project.json`. **Supabase ist optional** — nur ausführen wenn `supabase.project_id` gesetzt ist.
 
 ## Trigger
 
@@ -84,11 +83,14 @@ gh pr merge --squash --delete-branch
 git checkout main && git pull origin main
 ```
 
-### 6. Notion-Status auf "Done"
+### 6. Supabase-Status auf "done"
 
-> **Nur wenn Notion konfiguriert ist** (`notion.tasks_db` in `project.json` gesetzt).
+> **Nur wenn Supabase konfiguriert ist** (`supabase.project_id` in `project.json` gesetzt).
 
-Setze den Status des aktuellen Tickets auf **"Done"** via `notion-update-page`.
+Via `mcp__claude_ai_Supabase__execute_sql`:
+```sql
+UPDATE public.tickets SET status = 'done', summary = '{summary}' WHERE number = {N};
+```
 Falls kein aktives Ticket bekannt: frage den User.
 
 ### 7. Bestätigung
@@ -99,7 +101,7 @@ Zeige eine einzige Zusammenfassung am Ende:
 Merged: feat(#T--162): Add user settings page
 PR: https://github.com/...
 Branch: feature/T--162-user-settings → deleted
-Notion: Done ✓ (falls konfiguriert)
+Supabase: Done (falls konfiguriert)
 ```
 
 ## Regeln

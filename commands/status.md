@@ -10,17 +10,31 @@ Zeige eine Übersicht des aktuellen Arbeitsstands.
 
 ## Konfiguration
 
-Lies `project.json` für Notion-Config (`notion.tasks_db`, `notion.project_id`).
-Resolve die Data Source URL via `notion-fetch` auf `https://www.notion.so/{notion.tasks_db}` falls noch nicht in der Session gecached.
+Lies `project.json` für Supabase-Config (`supabase.project_id`, `supabase.project_name`).
 
 ## Ausführung (direkt in der Hauptsession — kein Sub-Agent nötig)
 
-### 1. Notion-Ticket
+### 1. Supabase-Ticket
 
-Suche das aktuelle Ticket via Notion:
-1. Data Source URL resolven (siehe oben)
-2. `notion-search` mit Query "In progress" und der Data Source URL
-3. Nach Projekt filtern (`notion.project_id` → Projekt-Page resolven, gegen Projekt-Relation matchen)
+> **Nur wenn Supabase konfiguriert ist** (`supabase.project_id` in `project.json` gesetzt).
+
+Falls `supabase.project_name` gesetzt ist:
+```sql
+SELECT number, title, status, priority
+FROM public.tickets
+WHERE status = 'in_progress'
+  AND project_id = (SELECT id FROM public.projects WHERE name = '{project_name}');
+```
+
+Falls `supabase.project_name` null ist:
+```sql
+SELECT number, title, status, priority
+FROM public.tickets
+WHERE status = 'in_progress'
+  AND project_id IS NULL;
+```
+
+Via `mcp__claude_ai_Supabase__execute_sql` mit `project_id` aus project.json.
 
 Zeige:
 - Ticket-Titel
@@ -40,7 +54,7 @@ Zeige eine kompakte Übersicht:
 
 ```
 Ticket: {ID} — {Titel}
-Status: {Notion-Status}
+Status: {status}
 Branch: {git branch}
 Änderungen: {N Dateien geändert}
 ```

@@ -1,6 +1,6 @@
 ---
 name: ship
-description: Commit, Push, PR erstellen und Notion-Status auf "Ready to review". Vollständig autonom, keine Rückfragen.
+description: Commit, Push, PR erstellen und Supabase-Status auf "in_review". Vollständig autonom, keine Rückfragen.
 disable-model-invocation: true
 ---
 
@@ -12,8 +12,7 @@ Erstellt einen PR zur Review. Merged wird erst nach Freigabe via `/merge` oder "
 
 ## Konfiguration
 
-Lies `project.json`. **Notion ist optional** — nur ausführen wenn `notion.tasks_db` gesetzt ist.
-Falls Notion konfiguriert: Resolve die Data Source URL via `notion-fetch` auf `https://www.notion.so/{notion.tasks_db}` falls noch nicht in der Session gecached.
+Lies `project.json`. **Supabase ist optional** — nur ausführen wenn `supabase.project_id` gesetzt ist.
 
 ## Trigger
 
@@ -56,12 +55,16 @@ EOF
 
 **Nicht fragen ob ein PR erstellt werden soll. Einfach erstellen.**
 
-### 4. Notion-Status auf "Ready to review"
+### 4. Supabase-Status auf "in_review"
 
-> **Nur wenn Notion konfiguriert ist** (`notion.tasks_db` in `project.json` gesetzt).
+> **Nur wenn Supabase konfiguriert ist** (`supabase.project_id` in `project.json` gesetzt).
 
-**Falls Notion konfiguriert — PFLICHT, NICHT ÜBERSPRINGEN:**
-Setze den Status des aktuellen Tickets auf **"Ready to review"** via `notion-update-page`.
+**Falls Supabase konfiguriert — PFLICHT, NICHT ÜBERSPRINGEN:**
+
+Via `mcp__claude_ai_Supabase__execute_sql`:
+```sql
+UPDATE public.tickets SET status = 'in_review' WHERE number = {N};
+```
 Falls kein aktives Ticket bekannt: frage den User.
 
 ### 5. Bestätigung
@@ -71,7 +74,7 @@ Zeige eine einzige Zusammenfassung am Ende:
 ```
 Shipped: feat(#T--162): Add user settings page
 PR: https://github.com/...
-Notion: Ready to review ✓ (falls konfiguriert)
+Supabase: In review (falls konfiguriert)
 
 → Nach Review: "passt" oder /merge zum Mergen
 ```

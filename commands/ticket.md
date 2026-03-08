@@ -1,6 +1,6 @@
 ---
 name: ticket
-description: Notion-Ticket aufnehmen und autonome Entwicklung starten
+description: Ticket aufnehmen und autonome Entwicklung starten
 disable-model-invocation: true
 ---
 
@@ -13,48 +13,57 @@ Nimm ein Ticket auf und starte den autonomen Entwicklungsflow.
 Lies `project.json` für Konventionen:
 - `conventions.branch_prefix` — Branch-Prefix (z.B. "feature/")
 
-**Notion (optional):** Falls `notion.tasks_db` in `project.json` gesetzt ist:
-- `notion.tasks_db` — Tasks Database ID (32 hex chars)
-- `notion.project_id` — Projekt-ID (Nummer aus P--11 → 11)
+**Supabase (optional):** Falls `supabase.project_id` in `project.json` gesetzt ist:
+- `supabase.project_id` — Supabase Project ID
+- `supabase.user_id` — Pipeline User-ID (UUID)
+- `supabase.project_name` — Projektname für Ticket-Filterung
 
-Falls `notion.tasks_db` **leer oder nicht vorhanden** ist: Alle Notion-Schritte in diesem Command überspringen. Ticket-Infos werden dann per `$ARGUMENTS` übergeben.
-
-## Notion-Zugriff: Data Source resolven
-
-> **Nur wenn Notion konfiguriert ist** (`notion.tasks_db` gesetzt).
-
-Die Data Source URL ist **nicht** in `project.json` gespeichert — sie wird zur Laufzeit aufgelöst:
-
-1. `notion-fetch` auf die DB URL: `https://www.notion.so/{notion.tasks_db}`
-2. Aus dem Response die `<data-source url="collection://...">` extrahieren
-3. Diese `collection://`-URL für alle weiteren Queries nutzen
-
-**Cache:** Merke dir die Data Source URL für die Dauer der Session — nicht bei jedem Query neu resolven.
+Falls `supabase.project_id` **leer oder nicht vorhanden** ist: Alle Supabase-Schritte in diesem Command überspringen. Ticket-Infos werden dann per `$ARGUMENTS` übergeben.
 
 ## Ausführung
 
 ### 1. Ticket finden
 
-> **Ohne Notion:** Nutze `$ARGUMENTS` direkt als Ticket-ID und Beschreibung. Springe zu Schritt 3 (nur Feature-Branch).
+> **Ohne Supabase:** Nutze `$ARGUMENTS` direkt als Ticket-ID und Beschreibung. Springe zu Schritt 3 (nur Feature-Branch).
 
 Falls `$ARGUMENTS` übergeben: Nutze als Ticket-ID oder Suchbegriff.
-Falls kein Argument: Suche nach Tickets mit Status "Ready to develop".
+Falls kein Argument: Suche nach Tickets mit Status "ready_to_develop".
 
 **Bei übergebener Ticket-ID (z.B. `T--162`):**
 1. Nummer extrahieren: `T--162` → `162`
-2. `notion-search` mit der resolved Data Source URL
-   - Query: die Ticket-Nummer
-   - Ergebnis via `notion-fetch` mit der zurückgegebenen Page-URL laden
-3. Prüfe dass `userDefined:ID` matcht
+2. Via `mcp__claude_ai_Supabase__execute_sql`:
+   ```sql
+   SELECT * FROM public.tickets WHERE number = 162;
+   ```
+   Mit `project_id` aus `supabase.project_id` in project.json.
 
-**Bei fehlendem Argument (Suche nach "Ready to develop"):**
-1. `notion-search` mit Query "Ready to develop" und der resolved Data Source URL
-2. Ergebnisse via `notion-fetch` laden (Top 3-5)
-3. Nach Projekt filtern: Das Feld "Projekt" ist eine **Relation**. Um zu filtern:
-   a. Projekte-DB resolven (aus dem Relation-Schema der Tasks-DB)
-   b. Projekt-Page finden: `WHERE "userDefined:ID" = {notion.project_id}`
-   c. Nur Tasks behalten, deren "Projekt"-Relation diese Page-URL enthält
-4. Status "Ready to develop" im Properties-Objekt prüfen
+**Bei fehlendem Argument (Suche nach "ready_to_develop"):**
+
+Falls `supabase.project_name` gesetzt ist:
+```sql
+SELECT number, title, body, priority, tags
+FROM public.tickets
+WHERE status = 'ready_to_develop'
+  AND project_id = (SELECT id FROM public.projects WHERE name = '{project_name}')
+ORDER BY
+  CASE priority WHEN 'high' THEN 1 WHEN 'medium' THEN 2 WHEN 'low' THEN 3 END,
+  created_at ASC
+LIMIT 5;
+```
+
+Falls `supabase.project_name` null ist:
+```sql
+SELECT number, title, body, priority, tags
+FROM public.tickets
+WHERE status = 'ready_to_develop'
+  AND project_id IS NULL
+ORDER BY
+  CASE priority WHEN 'high' THEN 1 WHEN 'medium' THEN 2 WHEN 'low' THEN 3 END,
+  created_at ASC
+LIMIT 5;
+```
+
+Via `mcp__claude_ai_Supabase__execute_sql` mit `project_id` aus project.json.
 
 ### 2. Ticket auswählen
 
@@ -62,10 +71,14 @@ Falls kein Argument: Suche nach Tickets mit Status "Ready to develop".
 - **Eines:** Automatisch nehmen
 - **Keines:** User informieren
 
-### 3. Notion auf "In progress" + Feature-Branch
+### 3. Status auf "in_progress" + Feature-Branch
 
-**Falls Notion konfiguriert — PFLICHT, NICHT ÜBERSPRINGEN:**
-Status des Tickets via `notion-update-page` auf **"In progress"** setzen.
+**Falls Supabase konfiguriert — PFLICHT, NICHT ÜBERSPRINGEN:**
+
+Via `mcp__claude_ai_Supabase__execute_sql`:
+```sql
+UPDATE public.tickets SET status = 'in_progress', branch = '{branch}' WHERE number = {N};
+```
 Warte auf die Bestätigung, dass das Update erfolgreich war, bevor du weitermachst.
 
 ```bash
@@ -111,13 +124,17 @@ Direkt in der Hauptsession (kein Agent):
 1. Commit — Conventional Commits, gezielt stagen
 2. Push — `git push -u origin {branch}`
 3. PR — `gh pr create` mit Summary + Test Plan
-4. **Falls Notion konfiguriert — PFLICHT:** Notion-Status auf **"Ready to review"** via `notion-update-page`
+4. **Falls Supabase konfiguriert — PFLICHT:**
+   Via `mcp__claude_ai_Supabase__execute_sql`:
+   ```sql
+   UPDATE public.tickets SET status = 'in_review' WHERE number = {N};
+   ```
 
 **NICHT automatisch mergen.** Der PR bleibt offen bis der User ihn freigibt (via `/merge` oder "passt").
 
 ### Checkliste vor Abschluss
 
 Bevor du den Workflow als fertig meldest, prüfe:
-- [ ] **Falls Notion konfiguriert:** Status wurde auf "In progress" gesetzt (Schritt 3)
-- [ ] **Falls Notion konfiguriert:** Status wurde auf "Ready to review" gesetzt (Schritt 8.4)
-Falls ein Notion-Status-Update fehlt und Notion konfiguriert ist: **JETZT nachholen**, nicht überspringen.
+- [ ] **Falls Supabase konfiguriert:** Status wurde auf "in_progress" gesetzt (Schritt 3)
+- [ ] **Falls Supabase konfiguriert:** Status wurde auf "in_review" gesetzt (Schritt 8.4)
+Falls ein Supabase-Status-Update fehlt und Supabase konfiguriert ist: **JETZT nachholen**, nicht überspringen.

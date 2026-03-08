@@ -331,25 +331,11 @@ read -p "  Branch prefix [feature/]: " BRANCH_PREFIX
 BRANCH_PREFIX=${BRANCH_PREFIX:-"feature/"}
 
 echo ""
-echo "Notion integration (leave empty to skip):"
-echo "  Open your Tasks DB as full page and copy the URL."
+echo "Supabase integration:"
+echo "  Connect Supabase in Claude: Settings → Integrations → Supabase"
 echo ""
-read -p "  Tasks DB URL: " NOTION_TASKS_URL
-read -p "  Project ID (Nummer aus P--11 → 11): " NOTION_PROJECT_ID
-
-# Extract DB ID from URL: last path segment before query params
-NOTION_DB_ID=""
-if [ -n "$NOTION_TASKS_URL" ]; then
-  # Extract the 32-char hex ID from the URL
-  NOTION_DB_ID=$(echo "$NOTION_TASKS_URL" | grep -oE '[0-9a-f]{32}' | head -1)
-  if [ -z "$NOTION_DB_ID" ]; then
-    echo ""
-    echo "  ⚠ Could not extract DB ID from URL. Please enter manually:"
-    read -p "  Tasks DB ID (32 hex chars): " NOTION_DB_ID
-  else
-    echo "  ✓ Extracted DB ID: $NOTION_DB_ID"
-  fi
-fi
+read -p "  Supabase Project ID (from dashboard URL, leave empty to skip): " SUPABASE_PROJECT_ID
+read -p "  Project name (for ticket filtering, leave empty for 'No project'): " SUPABASE_PROJECT_NAME
 
 echo ""
 
@@ -391,14 +377,19 @@ fi
 if [ "$OVERWRITE_CONFIG" != "N" ]; then
   echo "Generating project.json..."
 
-  NOTION_BLOCK=""
-  if [ -n "$NOTION_DB_ID" ]; then
-    NOTION_BLOCK=$(cat <<NOTION_EOF
-  "notion": {
-    "tasks_db": "${NOTION_DB_ID}",
-    "project_id": ${NOTION_PROJECT_ID:-null}
+  SUPABASE_BLOCK=""
+  if [ -n "$SUPABASE_PROJECT_ID" ]; then
+    SUPABASE_PROJECT_NAME_JSON="${SUPABASE_PROJECT_NAME:-null}"
+    if [ "$SUPABASE_PROJECT_NAME_JSON" != "null" ]; then
+      SUPABASE_PROJECT_NAME_JSON="\"${SUPABASE_PROJECT_NAME_JSON}\""
+    fi
+    SUPABASE_BLOCK=$(cat <<SUPABASE_EOF
+  "supabase": {
+    "project_id": "${SUPABASE_PROJECT_ID}",
+    "user_id": "",
+    "project_name": ${SUPABASE_PROJECT_NAME_JSON}
   },
-NOTION_EOF
+SUPABASE_EOF
 )
   fi
 
@@ -412,7 +403,7 @@ NOTION_EOF
     "test": "${BUILD_TEST}"
   },
   "paths": {},
-  ${NOTION_BLOCK}
+  ${SUPABASE_BLOCK}
   "conventions": {
     "branch_prefix": "${BRANCH_PREFIX}",
     "commit_format": "conventional",
@@ -454,8 +445,9 @@ echo ""
 echo "Next steps:"
 echo "  1. Edit CLAUDE.md — architecture, conventions, domain knowledge"
 echo "  2. Edit project.json — stack, paths"
-echo "  3. Add skills in .claude/skills/ (optional)"
-echo "  4. Test: claude → /status"
+echo "  3. Run /setup-db in Claude Code to create database tables"
+echo "  4. Add skills in .claude/skills/ (optional)"
+echo "  5. Test: claude → /status"
 echo ""
 echo "Update framework later:"
 echo "  $(basename "$FRAMEWORK_DIR")/setup.sh --update"

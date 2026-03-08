@@ -13,7 +13,23 @@ Guide completion of development work by presenting clear options and handling ch
 
 **Announce at start:** "I'm using the finishing-a-development-branch skill to complete this work."
 
-## The Process
+## Autonomous Mode (Orchestrator / Pipeline)
+
+When this skill is invoked as part of an autonomous pipeline (orchestrator, subagent-driven-development, executing-plans), **do NOT present options or ask questions.** Instead:
+
+1. Verify tests pass
+2. Execute `/ship` — commit, push, create PR, update Supabase
+3. Report the result
+
+The user has already opted into autonomous execution by running the pipeline. Asking "Soll ich den PR erstellen?" breaks the flow.
+
+**How to detect:** If you're inside an orchestrator workflow, or if the calling skill/agent instructed you to finish autonomously, use this mode.
+
+---
+
+## Interactive Mode (Manual Use)
+
+When invoked directly by the user (outside a pipeline), present the 4 options as described below.
 
 ### Step 1: Verify Tests
 

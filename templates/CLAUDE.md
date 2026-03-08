@@ -1,7 +1,7 @@
 # CLAUDE.md – {{PROJECT_NAME}} Project Instructions
 
 > Dieses Dokument wird von Claude Code automatisch gelesen.
-> Projektspezifische Konfiguration (Notion-IDs, Build-Commands, Pfade) liegt in `project.json`.
+> Projektspezifische Konfiguration (Supabase-Config, Build-Commands, Pfade) liegt in `project.json`.
 
 ---
 
@@ -33,22 +33,27 @@ Dieses Repo nutzt ein Multi-Agent-System. Ob lokal oder auf dem Server:
 1. **Arbeite autonom** — keine interaktiven Fragen, keine manuellen Bestätigungen
 2. **Plane selbst** — kein Planner-Agent, keine Spec-Datei. Lies betroffene Dateien direkt und gib Agents konkrete Instruktionen
 3. **Wenn unklar:** Konservative Lösung wählen, nicht raten
-4. **Commit + PR** am Ende des Workflows → Notion "Ready to review"
+4. **Commit + PR** am Ende des Workflows → Supabase "in_review"
 5. **Merge erst nach Freigabe** — User sagt "passt"/"merge" oder `/merge`
 
-## Notion-Workflow
+## Ticket-Workflow (Supabase)
 
-> Nur aktiv wenn `notion.tasks_db` in `project.json` gesetzt ist. Ohne Notion werden diese Schritte übersprungen.
+> Nur aktiv wenn `supabase.project_id` in `project.json` gesetzt ist. Ohne Supabase werden diese Schritte übersprungen.
 
-Falls Notion konfiguriert ist, sind Status-Updates **PFLICHT**:
+Falls Supabase konfiguriert ist, sind Status-Updates **PFLICHT**:
 
-| Workflow-Schritt | Notion-Status | Wann |
+| Workflow-Schritt | Supabase-Status | Wann |
 |---|---|---|
-| `/ticket` — Ticket aufnehmen | **"In progress"** | Sofort nach Ticket-Auswahl, VOR dem Coding |
-| `/ship` — PR erstellen | **"Ready to review"** | Nach PR-Erstellung |
-| `/merge` — PR mergen | **"Done"** | Nach erfolgreichem Merge |
+| `/ticket` — Ticket aufnehmen | **`in_progress`** | Sofort nach Ticket-Auswahl, VOR dem Coding |
+| `/ship` — PR erstellen | **`in_review`** | Nach PR-Erstellung |
+| `/merge` — PR mergen | **`done`** | Nach erfolgreichem Merge |
 
-**Überspringe KEINEN dieser Schritte.** Falls ein Notion-Update fehlschlägt, versuche es erneut oder informiere den User.
+Status-Updates via `mcp__claude_ai_Supabase__execute_sql`:
+```sql
+UPDATE public.tickets SET status = '{status}' WHERE number = {N};
+```
+
+**Überspringe KEINEN dieser Schritte.** Falls ein Supabase-Update fehlschlägt, versuche es erneut oder informiere den User.
 
 ---
 

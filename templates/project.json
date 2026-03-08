@@ -15,9 +15,10 @@
     "src": "src/",
     "tests": "tests/"
   },
-  "notion": {
-    "tasks_db": "",
-    "project_id": null
+  "supabase": {
+    "project_id": "",
+    "user_id": "",
+    "project_name": null
   },
   "conventions": {
     "branch_prefix": "feature/",
