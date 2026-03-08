@@ -109,7 +109,7 @@ Direkt in dieser Session (kein Sub-Agent). **Alle Schritte autonom durchführen 
    `Co-Authored-By: Claude Opus 4.6 <noreply@anthropic.com>`
 4. **Push** — `git push -u origin {branch}`
 5. **PR** — `gh pr create` mit Summary + Test Plan
-6. **Supabase** — Status auf "in_review" setzen via `mcp__claude_ai_Supabase__execute_sql`: `UPDATE public.tickets SET status = 'in_review' WHERE number = {N}` (nur wenn `supabase.project_id` in `project.json` gesetzt)
+6. **Supabase** — Status auf "in_review" setzen via `mcp__claude_ai_Supabase__execute_sql`: `UPDATE public.tickets SET status = 'in_review' WHERE number = {N} RETURNING number, title, status` (nur wenn `supabase.project_id` in `project.json` gesetzt)
 
 **NICHT automatisch mergen.** Der PR bleibt offen bis der User ihn freigibt (via `/merge` oder "passt").
 

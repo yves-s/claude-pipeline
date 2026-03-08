@@ -50,7 +50,7 @@ Falls Supabase konfiguriert ist, sind Status-Updates **PFLICHT**:
 
 Status-Updates via `mcp__claude_ai_Supabase__execute_sql`:
 ```sql
-UPDATE public.tickets SET status = '{status}' WHERE number = {N};
+UPDATE public.tickets SET status = '{status}' WHERE number = {N} RETURNING number, title, status;
 ```
 
 **Überspringe KEINEN dieser Schritte.** Falls ein Supabase-Update fehlschlägt, versuche es erneut oder informiere den User.

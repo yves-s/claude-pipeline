@@ -77,7 +77,7 @@ Via `mcp__claude_ai_Supabase__execute_sql` mit `project_id` aus project.json.
 
 Via `mcp__claude_ai_Supabase__execute_sql`:
 ```sql
-UPDATE public.tickets SET status = 'in_progress', branch = '{branch}' WHERE number = {N};
+UPDATE public.tickets SET status = 'in_progress', branch = '{branch}' WHERE number = {N} RETURNING number, title, status;
 ```
 Warte auf die Bestätigung, dass das Update erfolgreich war, bevor du weitermachst.
 
@@ -127,7 +127,7 @@ Direkt in der Hauptsession (kein Agent):
 4. **Falls Supabase konfiguriert — PFLICHT:**
    Via `mcp__claude_ai_Supabase__execute_sql`:
    ```sql
-   UPDATE public.tickets SET status = 'in_review' WHERE number = {N};
+   UPDATE public.tickets SET status = 'in_review' WHERE number = {N} RETURNING number, title, status;
    ```
 
 **NICHT automatisch mergen.** Der PR bleibt offen bis der User ihn freigibt (via `/merge` oder "passt").

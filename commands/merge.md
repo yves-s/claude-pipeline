@@ -89,7 +89,7 @@ git checkout main && git pull origin main
 
 Via `mcp__claude_ai_Supabase__execute_sql`:
 ```sql
-UPDATE public.tickets SET status = 'done', summary = '{summary}' WHERE number = {N};
+UPDATE public.tickets SET status = 'done', summary = '{summary}' WHERE number = {N} RETURNING number, title, status;
 ```
 Falls kein aktives Ticket bekannt: frage den User.
 

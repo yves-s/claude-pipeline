@@ -63,7 +63,7 @@ EOF
 
 Via `mcp__claude_ai_Supabase__execute_sql`:
 ```sql
-UPDATE public.tickets SET status = 'in_review' WHERE number = {N};
+UPDATE public.tickets SET status = 'in_review' WHERE number = {N} RETURNING number, title, status;
 ```
 Falls kein aktives Ticket bekannt: frage den User.
 
