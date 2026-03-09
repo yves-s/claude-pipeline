@@ -331,11 +331,22 @@ read -p "  Branch prefix [feature/]: " BRANCH_PREFIX
 BRANCH_PREFIX=${BRANCH_PREFIX:-"feature/"}
 
 echo ""
-echo "Supabase integration:"
-echo "  Connect Supabase in Claude: Settings → Integrations → Supabase"
+echo "Supabase integration (leave empty to skip):"
 echo ""
-read -p "  Supabase Project ID (from dashboard URL, leave empty to skip): " SUPABASE_PROJECT_ID
-read -p "  Project name (for ticket filtering, leave empty for 'No project'): " SUPABASE_PROJECT_NAME
+echo "  Voraussetzung: Supabase MCP muss in Claude Code verbunden sein."
+echo "  (Claude Desktop: Settings → Integrations → Supabase)"
+echo ""
+echo "  Die Project ID findest du in deiner Supabase Dashboard URL:"
+echo "  https://supabase.com/dashboard/project/<PROJECT_ID>"
+echo ""
+read -p "  Supabase Project ID [skip]: " SUPABASE_PROJECT_ID
+
+if [ -n "$SUPABASE_PROJECT_ID" ]; then
+  echo ""
+  echo "  Optional: Projektname zum Filtern von Tickets in der DB."
+  echo "  Falls du mehrere Projekte in einer Supabase-Instanz hast."
+  read -p "  Projektname (leer = kein Filter): " SUPABASE_PROJECT_NAME
+fi
 
 echo ""
 
