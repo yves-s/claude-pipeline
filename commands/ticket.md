@@ -20,6 +20,10 @@ Lies `project.json` für Konventionen:
 
 Falls `supabase.project_id` **leer oder nicht vorhanden** ist: Alle Supabase-Schritte in diesem Command überspringen. Ticket-Infos werden dann per `$ARGUMENTS` übergeben.
 
+## WICHTIGSTE REGEL
+
+**STOPPE NICHT ZWISCHEN DEN SCHRITTEN.** Nach Build-Check (Schritt 6) kommt Review (Schritt 7), dann Ship (Schritt 8). Du darfst NICHT nach dem Build dem User die Ergebnisse zeigen und auf Antwort warten. ALLES durchlaufen bis Schritt 8 fertig ist.
+
 ## Ausführung
 
 ### 1. Ticket finden
@@ -111,6 +115,8 @@ Spawne Agents via Task-Tool mit konkreten Instruktionen:
 Lies Build-Commands aus `project.json` und führe sie aus.
 Nur bei Build-Fehlern: DevOps-Agent mit `model: "haiku"` spawnen.
 
+**NICHT STOPPEN.** Zeige dem User NICHT die Build-Ergebnisse und warte NICHT auf Antwort. SOFORT weiter zu Schritt 7.
+
 ### 7. Review (ein Agent)
 
 Ein QA-Agent mit `model: "haiku"`:
@@ -118,17 +124,15 @@ Ein QA-Agent mit `model: "haiku"`:
 - Security-Quick-Check (Secrets, RLS, Auth, Input Validation)
 - Bei Problemen: direkt fixen
 
-### 8. Ship (ohne Merge)
+**NICHT STOPPEN.** SOFORT weiter zu Schritt 8.
 
-Direkt in der Hauptsession (kein Agent):
-1. Commit — Conventional Commits, gezielt stagen
-2. Push — `git push -u origin {branch}`
-3. PR — `gh pr create` mit Summary + Test Plan
-4. **Falls Supabase konfiguriert — PFLICHT:**
-   Via `mcp__claude_ai_Supabase__execute_sql`:
-   ```sql
-   UPDATE public.tickets SET status = 'in_review' WHERE number = {N} RETURNING number, title, status;
-   ```
+### 8. Ship — `/ship` ausführen
+
+**Führe den `/ship` Command aus.** Dieser macht autonom: Commit → Push → PR → Supabase "in_review".
+
+NICHT den Skill `finishing-a-development-branch` aufrufen.
+NICHT dem User Optionen präsentieren.
+NICHT fragen ob committed/gepusht werden soll.
 
 **NICHT automatisch mergen.** Der PR bleibt offen bis der User ihn freigibt (via `/merge` oder "passt").
 
@@ -136,5 +140,5 @@ Direkt in der Hauptsession (kein Agent):
 
 Bevor du den Workflow als fertig meldest, prüfe:
 - [ ] **Falls Supabase konfiguriert:** Status wurde auf "in_progress" gesetzt (Schritt 3)
-- [ ] **Falls Supabase konfiguriert:** Status wurde auf "in_review" gesetzt (Schritt 8.4)
+- [ ] **Falls Supabase konfiguriert:** Status wurde auf "in_review" gesetzt (Schritt 8 via `/ship`)
 Falls ein Supabase-Status-Update fehlt und Supabase konfiguriert ist: **JETZT nachholen**, nicht überspringen.

@@ -91,7 +91,7 @@ Standardmäßig übernimmt der QA-Agent den Security-Quick-Check. Für sicherhei
 
 ### Phase 5: Ship (ohne Merge, KEINE Rückfragen)
 
-Direkt in dieser Session (kein Sub-Agent). **Alle Schritte autonom durchführen — nicht fragen ob committed/gepusht/PR erstellt werden soll.**
+**Führe `/ship` aus.** NICHT den Skill `finishing-a-development-branch` aufrufen. NICHT fragen. NICHT stoppen. Alle Schritte autonom durchführen:
 
 1. **Changelog aktualisieren** — Füge einen neuen Eintrag in `CHANGELOG.md` ein (direkt nach dem Kommentar `<!-- Neue Einträge werden hier eingefügt (neueste oben) -->`). Falls die Datei nicht existiert, überspringe diesen Schritt. Format:
 

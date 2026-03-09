@@ -1,42 +1,51 @@
 ---
 name: ship
-description: Commit, Push, PR erstellen und Supabase-Status auf "in_review". Vollständig autonom, keine Rückfragen.
+description: Commit, Push, PR erstellen, Supabase "in_review". Vollständig autonom, NULL Rückfragen.
 disable-model-invocation: true
 ---
 
-# /ship — Commit, Push, PR erstellen
+# /ship — PR erstellen (ohne Merge)
 
-Erstellt einen PR zur Review. Merged wird erst nach Freigabe via `/merge` oder "passt".
+Commit → Push → PR. Merged wird erst nach Freigabe via `/merge`.
 
-**KEINE RÜCKFRAGEN. KEINE BESTÄTIGUNGEN. EINFACH MACHEN.**
+## WICHTIGSTE REGEL
+
+**DU DARFST NICHT STOPPEN ODER FRAGEN.** Führe ALLE Schritte 1-5 hintereinander aus. Kein "Soll ich...?", kein "Möchtest du...?". EINFACH ALLES DURCHLAUFEN.
+
+## NICHT verwenden
+
+- NICHT den Skill `finishing-a-development-branch` aufrufen
+- NICHT den User nach Optionen fragen
 
 ## Konfiguration
 
-Lies `project.json`. **Supabase ist optional** — nur ausführen wenn `supabase.project_id` gesetzt ist.
+Lies `project.json`. Supabase-Schritte NUR wenn `supabase.project_id` gesetzt ist.
 
 ## Trigger
 
-Wird ausgeführt wenn:
-- Der User `/ship` eingibt
-- Phase 5 des Orchestrator-Workflows erreicht ist
+- `/ship`
+- Phase 5 des Orchestrator-Workflows
 
-## Ausführung (direkt in der Hauptsession, KEINE Rückfragen)
+## Ablauf — ALLE Schritte ohne Pause durchführen
 
 ### 1. Commit
 
-- Stage relevante Dateien gezielt (NICHT `git add -A`)
-- Conventional Commit: `feat(#{ticket}): {kurze englische Beschreibung}`
-- `Co-Authored-By: Claude Opus 4.6 <noreply@anthropic.com>`
+```bash
+git add <betroffene-dateien>
+git commit -m "feat(#{ticket}): {kurze englische Beschreibung}
 
-**Nicht fragen ob committed werden soll. Einfach committen.**
+Co-Authored-By: Claude Opus 4.6 <noreply@anthropic.com>"
+```
+
+SOFORT WEITER ZU SCHRITT 2.
 
 ### 2. Push
 
 ```bash
-git push -u origin {branch-name}
+git push -u origin $(git branch --show-current)
 ```
 
-**Nicht fragen ob gepusht werden soll. Einfach pushen.**
+SOFORT WEITER ZU SCHRITT 3.
 
 ### 3. PR erstellen
 
@@ -53,37 +62,32 @@ EOF
 )"
 ```
 
-**Nicht fragen ob ein PR erstellt werden soll. Einfach erstellen.**
+SOFORT WEITER ZU SCHRITT 4.
 
-### 4. Supabase-Status auf "in_review"
-
-> **Nur wenn Supabase konfiguriert ist** (`supabase.project_id` in `project.json` gesetzt).
-
-**Falls Supabase konfiguriert — PFLICHT, NICHT ÜBERSPRINGEN:**
+### 4. Supabase-Status auf "in_review" (nur wenn konfiguriert)
 
 Via `mcp__claude_ai_Supabase__execute_sql`:
 ```sql
 UPDATE public.tickets SET status = 'in_review' WHERE number = {N} RETURNING number, title, status;
 ```
-Falls kein aktives Ticket bekannt: frage den User.
 
-### 5. Bestätigung
+SOFORT WEITER ZU SCHRITT 5.
 
-Zeige eine einzige Zusammenfassung am Ende:
+### 5. Bestätigung (EINZIGE Ausgabe an den User)
 
 ```
-Shipped: feat(#T--162): Add user settings page
-PR: https://github.com/...
-Supabase: In review (falls konfiguriert)
+✓ Shipped: feat(#{ticket}): {Beschreibung}
+  PR: {url}
+  Supabase: in_review (falls konfiguriert)
 
 → Nach Review: "passt" oder /merge zum Mergen
 ```
 
-## Regeln
+## Verboten
 
-- **KEINE RÜCKFRAGEN** — alle Schritte autonom durchführen
-- NIEMALS `git add -A` — immer gezielt stagen
-- NIEMALS `--force` pushen
-- Bei Pre-Commit Hook Failure: fixen und NEUEN Commit (nicht amend)
-- Bei Merge-Konflikten: dem User zeigen
-- NICHT automatisch mergen — das passiert erst nach Freigabe via `/merge`
+- `git add -A` oder `git add .`
+- `--force` push
+- Fragen stellen
+- Zwischen Schritten stoppen
+- Den Skill `finishing-a-development-branch` aufrufen
+- Automatisch mergen

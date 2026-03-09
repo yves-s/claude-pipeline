@@ -1,61 +1,65 @@
 ---
 name: merge
-description: Alles abschliessen — commit, push, PR, merge, Supabase "done". Vollständig autonom, keine Rückfragen.
+description: Alles abschliessen — commit, push, PR, merge, zurück auf main. Vollständig autonom, NULL Rückfragen.
 disable-model-invocation: true
 ---
 
-# /merge — Ship + Merge in einem Rutsch
+# /merge — ALLES abschliessen, ein Befehl
 
-Schliesst die aktuelle Arbeit vollständig ab. Führt alle nötigen Schritte autonom durch — vom uncommitted Code bis zum gemergten PR.
+Vom uncommitted Code bis zum gemergten PR auf main. **Ein Befehl, keine Unterbrechung.**
 
-**KEINE RÜCKFRAGEN. KEINE BESTÄTIGUNGEN. EINFACH MACHEN.**
+## WICHTIGSTE REGEL
+
+**DU DARFST NICHT STOPPEN ODER FRAGEN.** Führe ALLE Schritte 1-7 hintereinander aus. Kein "Soll ich...?", kein "Möchtest du...?", kein "Ich habe committed, soll ich jetzt pushen?". EINFACH ALLES DURCHLAUFEN.
+
+Falls du den Drang hast eine Frage zu stellen: **UNTERDRÜCKE IHN** und mach einfach den nächsten Schritt.
+
+## NICHT verwenden
+
+- NICHT den Skill `finishing-a-development-branch` aufrufen
+- NICHT den User nach Optionen fragen
+- NICHT nach Bestätigung fragen
+- NICHT zwischen Schritten stoppen
 
 ## Konfiguration
 
-Lies `project.json`. **Supabase ist optional** — nur ausführen wenn `supabase.project_id` gesetzt ist.
+Lies `project.json`. Supabase-Schritte NUR wenn `supabase.project_id` gesetzt ist.
 
 ## Trigger
 
-Wird ausgeführt wenn:
-- Der User `/merge` eingibt
-- Der User "passt", "done", "sieht gut aus", "klappt", "fertig" o.ä. sagt
+- `/merge`
+- "passt", "done", "sieht gut aus", "klappt", "fertig", "ship it", "mach zu"
 
-## Ausführung (direkt in der Hauptsession, KEINE Rückfragen)
+## Ablauf — ALLE Schritte ohne Pause durchführen
 
-Prüfe den aktuellen Zustand und führe **alle nötigen Schritte** ohne Unterbrechung durch:
-
-### 1. Uncommitted Changes? → Commit
-
-Falls `git status` uncommitted Changes zeigt:
+### 1. Commit (falls nötig)
 
 ```bash
-# Gezielt stagen (NICHT git add -A)
-git add <betroffene-dateien>
+git status
+```
 
-# Conventional Commit
+Falls uncommitted changes:
+```bash
+git add <betroffene-dateien>
 git commit -m "feat(#{ticket}): {englische Beschreibung}
 
 Co-Authored-By: Claude Opus 4.6 <noreply@anthropic.com>"
 ```
 
-**Nicht fragen ob committed werden soll. Einfach committen.**
+SOFORT WEITER ZU SCHRITT 2.
 
-### 2. Nicht gepusht? → Push
-
-Falls der Branch nicht auf Remote existiert oder ahead ist:
+### 2. Push
 
 ```bash
-git push -u origin {branch-name}
+git push -u origin $(git branch --show-current)
 ```
 
-**Nicht fragen ob gepusht werden soll. Einfach pushen.**
+SOFORT WEITER ZU SCHRITT 3.
 
-### 3. Kein PR? → PR erstellen
-
-Falls `gh pr view` keinen offenen PR findet:
+### 3. PR erstellen (falls keiner existiert)
 
 ```bash
-gh pr create --title "feat(#{ticket}): {Beschreibung}" --body "$(cat <<'EOF'
+gh pr view 2>/dev/null || gh pr create --title "feat(#{ticket}): {Beschreibung}" --body "$(cat <<'EOF'
 ## Summary
 - {Bullet Points}
 
@@ -67,7 +71,7 @@ EOF
 )"
 ```
 
-**Nicht fragen ob ein PR erstellt werden soll. Einfach erstellen.**
+SOFORT WEITER ZU SCHRITT 4.
 
 ### 4. Merge
 
@@ -75,7 +79,7 @@ EOF
 gh pr merge --squash --delete-branch
 ```
 
-**Nicht fragen ob gemergt werden soll. Einfach mergen.**
+SOFORT WEITER ZU SCHRITT 5.
 
 ### 5. Zurück auf main
 
@@ -83,33 +87,39 @@ gh pr merge --squash --delete-branch
 git checkout main && git pull origin main
 ```
 
-### 6. Supabase-Status auf "done"
+SOFORT WEITER ZU SCHRITT 6.
 
-> **Nur wenn Supabase konfiguriert ist** (`supabase.project_id` in `project.json` gesetzt).
+### 6. Supabase-Status auf "done" (nur wenn konfiguriert)
 
 Via `mcp__claude_ai_Supabase__execute_sql`:
 ```sql
 UPDATE public.tickets SET status = 'done', summary = '{summary}' WHERE number = {N} RETURNING number, title, status;
 ```
-Falls kein aktives Ticket bekannt: frage den User.
 
-### 7. Bestätigung
+SOFORT WEITER ZU SCHRITT 7.
 
-Zeige eine einzige Zusammenfassung am Ende:
+### 7. Bestätigung (EINZIGE Ausgabe an den User)
 
 ```
-Merged: feat(#T--162): Add user settings page
-PR: https://github.com/...
-Branch: feature/T--162-user-settings → deleted
-Supabase: Done (falls konfiguriert)
+✓ Merged: feat(#{ticket}): {Beschreibung}
+  PR: {url}
+  Branch: {branch} → deleted
+  Supabase: done (falls konfiguriert)
 ```
 
-## Regeln
+## Fehlerbehandlung
 
-- **KEINE RÜCKFRAGEN** — der User hat mit "passt"/"merge" bereits seine Freigabe gegeben
-- Jeden Schritt der nötig ist autonom durchführen (Commit, Push, PR, Merge)
-- Schritte die schon erledigt sind überspringen (z.B. PR existiert bereits → direkt mergen)
-- NIEMALS `git add -A` — immer gezielt stagen
-- NIEMALS `--force` pushen
-- Bei Pre-Commit Hook Failure: fixen und NEUEN Commit (nicht amend)
-- Bei Merge-Konflikten: dem User zeigen, nicht force-mergen
+- **Pre-Commit Hook Failure:** Fixen, NEUEN Commit, weiter
+- **Push rejected:** `git pull --rebase origin {branch}`, dann nochmal pushen
+- **Merge-Konflikte:** NUR DANN dem User zeigen — das ist der EINZIGE Grund zum Stoppen
+- **PR existiert bereits:** Überspringen, direkt mergen
+- **Alles schon auf main:** Sagen "Bereits auf main, nichts zu tun"
+
+## Verboten
+
+- `git add -A` oder `git add .`
+- `--force` push
+- `--amend` bei Hook-Failure
+- Fragen stellen
+- Zwischen Schritten stoppen
+- Den Skill `finishing-a-development-branch` aufrufen
