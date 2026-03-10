@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import {
   DndContext,
   DragEndEvent,
@@ -14,27 +14,64 @@ import {
 } from "@dnd-kit/core";
 import { arrayMove } from "@dnd-kit/sortable";
 import { createClient } from "@/lib/supabase/client";
+import { useRouter, usePathname, useSearchParams } from "next/navigation";
 import { BOARD_COLUMNS } from "@/lib/constants";
-import type { TicketStatus } from "@/lib/constants";
-import type { Ticket } from "@/lib/types";
+import type { TicketStatus, TicketPriority } from "@/lib/constants";
+import type { Ticket, Project, WorkspaceMember } from "@/lib/types";
 import { BoardColumn } from "./board-column";
 import { TicketCard } from "./ticket-card";
 import { TicketDetailSheet } from "@/components/tickets/ticket-detail-sheet";
 import { AgentPanel } from "./agent-panel";
 import { useAgentActivity } from "@/lib/hooks/use-agent-activity";
+import { BoardToolbar } from "./board-toolbar";
+import { useBoardFilters } from "@/lib/hooks/use-board-filters";
+
+const PRIORITY_ORDER: Record<TicketPriority, number> = {
+  high: 3,
+  medium: 2,
+  low: 1,
+};
 
 interface BoardProps {
   initialTickets: Ticket[];
   workspaceId: string;
+  workspaceSlug: string;
+  projects: Project[];
+  members: WorkspaceMember[];
 }
 
-export function Board({ initialTickets, workspaceId }: BoardProps) {
+export function Board({
+  initialTickets,
+  workspaceId,
+  workspaceSlug,
+  projects,
+  members,
+}: BoardProps) {
+  const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
   const [tickets, setTickets] = useState<Ticket[]>(initialTickets);
   const [activeTicket, setActiveTicket] = useState<Ticket | null>(null);
   const [selectedTicket, setSelectedTicket] = useState<Ticket | null>(null);
   const [sheetOpen, setSheetOpen] = useState(false);
 
+  const { filters, updateFilters } = useBoardFilters(workspaceSlug);
+
   const ticketIds = useMemo(() => initialTickets.map((t) => t.id), [initialTickets]);
+
+  // Open ticket from URL deeplink on mount
+  useEffect(() => {
+    const ticketParam = searchParams.get("ticket");
+    if (ticketParam) {
+      const num = parseInt(ticketParam.replace("T-", ""), 10);
+      const ticket = tickets.find((t) => t.number === num);
+      if (ticket) {
+        setSelectedTicket(ticket);
+        setSheetOpen(true);
+      }
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
   const { isActive, getActivity, activeAgents } = useAgentActivity(workspaceId, ticketIds);
 
   const sensors = useSensors(
@@ -43,8 +80,64 @@ export function Board({ initialTickets, workspaceId }: BoardProps) {
     })
   );
 
+  // Apply filters + sort to the full ticket list
+  const filteredTickets = useMemo(() => {
+    let result = tickets;
+
+    if (filters.statuses.length > 0) {
+      result = result.filter((t) => filters.statuses.includes(t.status));
+    }
+    if (filters.priorities.length > 0) {
+      result = result.filter((t) => filters.priorities.includes(t.priority));
+    }
+    if (filters.projectIds.length > 0) {
+      result = result.filter((t) =>
+        filters.projectIds.includes(t.project_id ?? "none")
+      );
+    }
+    if (filters.assigneeIds.length > 0) {
+      result = result.filter((t) =>
+        filters.assigneeIds.includes(t.assignee_id ?? "none")
+      );
+    }
+
+    result = [...result].sort((a, b) => {
+      let cmp = 0;
+      switch (filters.sortBy) {
+        case "created_at":
+          cmp =
+            new Date(a.created_at).getTime() -
+            new Date(b.created_at).getTime();
+          break;
+        case "priority":
+          cmp = PRIORITY_ORDER[a.priority] - PRIORITY_ORDER[b.priority];
+          break;
+        case "number":
+          cmp = a.number - b.number;
+          break;
+        case "due_date":
+          if (!a.due_date && !b.due_date) cmp = 0;
+          else if (!a.due_date) cmp = 1;
+          else if (!b.due_date) cmp = -1;
+          else
+            cmp =
+              new Date(a.due_date).getTime() - new Date(b.due_date).getTime();
+          break;
+      }
+      return filters.sortDir === "asc" ? cmp : -cmp;
+    });
+
+    return result;
+  }, [tickets, filters]);
+
+  // When status filter is active, hide filtered-out columns
+  const visibleColumns = useMemo(() => {
+    if (filters.statuses.length === 0) return BOARD_COLUMNS;
+    return BOARD_COLUMNS.filter((col) => filters.statuses.includes(col.status));
+  }, [filters.statuses]);
+
   function getTicketsForColumn(status: TicketStatus): Ticket[] {
-    return tickets.filter((t) => t.status === status);
+    return filteredTickets.filter((t) => t.status === status);
   }
 
   function handleDragStart(event: DragStartEvent) {
@@ -118,6 +211,20 @@ export function Board({ initialTickets, workspaceId }: BoardProps) {
   function handleTicketClick(ticket: Ticket) {
     setSelectedTicket(ticket);
     setSheetOpen(true);
+    const params = new URLSearchParams(searchParams.toString());
+    params.set("ticket", `T-${ticket.number}`);
+    router.replace(`${pathname}?${params.toString()}`);
+  }
+
+  function handleSheetOpenChange(open: boolean) {
+    setSheetOpen(open);
+    if (!open) {
+      setSelectedTicket(null);
+      const params = new URLSearchParams(searchParams.toString());
+      params.delete("ticket");
+      const qs = params.toString();
+      router.replace(qs ? `${pathname}?${qs}` : pathname);
+    }
   }
 
   function handleUpdated(updated: Ticket) {
@@ -129,8 +236,10 @@ export function Board({ initialTickets, workspaceId }: BoardProps) {
 
   function handleDeleted(id: string) {
     setTickets((prev) => prev.filter((t) => t.id !== id));
-    setSheetOpen(false);
-    setSelectedTicket(null);
+    const params = new URLSearchParams(searchParams.toString());
+    params.delete("ticket");
+    const qs = params.toString();
+    router.replace(qs ? `${pathname}?${qs}` : pathname);
   }
 
   return (
@@ -139,6 +248,12 @@ export function Board({ initialTickets, workspaceId }: BoardProps) {
         activeAgents={activeAgents}
         tickets={tickets}
         onTicketClick={handleTicketClick}
+      />
+      <BoardToolbar
+        filters={filters}
+        onChange={updateFilters}
+        projects={projects}
+        members={members}
       />
       <div className="flex-1 overflow-x-auto">
         <DndContext
@@ -149,7 +264,7 @@ export function Board({ initialTickets, workspaceId }: BoardProps) {
           onDragEnd={handleDragEnd}
         >
           <div className="flex h-full gap-4 p-6">
-            {BOARD_COLUMNS.map((col) => (
+            {visibleColumns.map((col) => (
               <BoardColumn
                 key={col.status}
                 status={col.status}
@@ -158,6 +273,7 @@ export function Board({ initialTickets, workspaceId }: BoardProps) {
                 onTicketClick={handleTicketClick}
                 isAgentActive={isActive}
                 getAgentActivity={getActivity}
+                groupByProject={filters.groupByProject}
               />
             ))}
           </div>
@@ -177,7 +293,7 @@ export function Board({ initialTickets, workspaceId }: BoardProps) {
       <TicketDetailSheet
         ticket={selectedTicket}
         open={sheetOpen}
-        onOpenChange={setSheetOpen}
+        onOpenChange={handleSheetOpenChange}
         onUpdated={handleUpdated}
         onDeleted={handleDeleted}
       />

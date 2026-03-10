@@ -14,6 +14,7 @@ interface BoardColumnProps {
   onTicketClick: (ticket: Ticket) => void;
   isAgentActive?: (ticketId: string) => boolean;
   getAgentActivity?: (ticketId: string) => { agent_type: string; event_type: string } | null;
+  groupByProject?: boolean;
 }
 
 const COLUMN_DOT: Record<TicketStatus, string> = {
@@ -25,6 +26,39 @@ const COLUMN_DOT: Record<TicketStatus, string> = {
   cancelled: "bg-red-400",
 };
 
+interface ProjectGroup {
+  projectId: string | null;
+  projectName: string | null;
+  tickets: Ticket[];
+}
+
+function buildProjectGroups(tickets: Ticket[]): ProjectGroup[] {
+  const map = new Map<string, ProjectGroup>();
+
+  for (const ticket of tickets) {
+    const key = ticket.project_id ?? "none";
+    if (!map.has(key)) {
+      map.set(key, {
+        projectId: ticket.project_id,
+        projectName: ticket.project?.name ?? null,
+        tickets: [],
+      });
+    }
+    map.get(key)!.tickets.push(ticket);
+  }
+
+  // No-project group first, then alphabetical
+  const noProject = map.get("none");
+  const withProject = Array.from(map.values())
+    .filter((g) => g.projectId !== null)
+    .sort((a, b) => (a.projectName ?? "").localeCompare(b.projectName ?? ""));
+
+  const result: ProjectGroup[] = [];
+  if (noProject) result.push(noProject);
+  result.push(...withProject);
+  return result;
+}
+
 export function BoardColumn({
   status,
   label,
@@ -32,8 +66,11 @@ export function BoardColumn({
   onTicketClick,
   isAgentActive,
   getAgentActivity,
+  groupByProject = false,
 }: BoardColumnProps) {
   const { setNodeRef, isOver } = useDroppable({ id: status });
+
+  const groups = groupByProject ? buildProjectGroups(tickets) : null;
 
   return (
     <div className="flex w-72 shrink-0 flex-col gap-3">
@@ -65,15 +102,40 @@ export function BoardColumn({
           items={tickets.map((t) => t.id)}
           strategy={verticalListSortingStrategy}
         >
-          {tickets.map((ticket) => (
-            <TicketCard
-              key={ticket.id}
-              ticket={ticket}
-              onClick={onTicketClick}
-              agentActive={isAgentActive?.(ticket.id) ?? false}
-              agentActivity={getAgentActivity?.(ticket.id) ?? null}
-            />
-          ))}
+          {groupByProject && groups ? (
+            groups.map((group, idx) => (
+              <div key={group.projectId ?? "none"} className={cn(idx > 0 && "mt-1")}>
+                {/* Project label separator */}
+                <div className="flex items-center gap-2 px-1 py-1">
+                  <div className="h-px flex-1 bg-border" />
+                  <span className="text-[10px] font-medium text-muted-foreground uppercase tracking-wide truncate max-w-[140px]">
+                    {group.projectName ?? "No project"}
+                  </span>
+                  <div className="h-px flex-1 bg-border" />
+                </div>
+                {group.tickets.map((ticket) => (
+                  <div key={ticket.id} className="mt-2 first:mt-0">
+                    <TicketCard
+                      ticket={ticket}
+                      onClick={onTicketClick}
+                      agentActive={isAgentActive?.(ticket.id) ?? false}
+                      agentActivity={getAgentActivity?.(ticket.id) ?? null}
+                    />
+                  </div>
+                ))}
+              </div>
+            ))
+          ) : (
+            tickets.map((ticket) => (
+              <TicketCard
+                key={ticket.id}
+                ticket={ticket}
+                onClick={onTicketClick}
+                agentActive={isAgentActive?.(ticket.id) ?? false}
+                agentActivity={getAgentActivity?.(ticket.id) ?? null}
+              />
+            ))
+          )}
         </SortableContext>
       </div>
     </div>
