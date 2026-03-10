@@ -32,6 +32,7 @@ export default function NewWorkspacePage() {
   const router = useRouter();
   const [serverError, setServerError] = useState<string | null>(null);
   const [apiKey, setApiKey] = useState<{ plaintext: string; slug: string } | null>(null);
+  const [createdSlug, setCreatedSlug] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
 
   const {
@@ -72,21 +73,26 @@ export default function NewWorkspacePage() {
       return;
     }
 
-    const { data: workspace, error } = await supabase.rpc("create_workspace", {
-      ws_name: data.name,
-      ws_slug: data.slug,
-    });
+    const { data: workspace, error } = await supabase
+      .rpc("create_workspace", {
+        ws_name: data.name,
+        ws_slug: data.slug,
+      })
+      .single();
 
-    if (error) {
-      setServerError(error.message);
+    if (error || !workspace) {
+      setServerError(error?.message ?? "Workspace creation failed");
       return;
     }
+
+    setCreatedSlug(workspace.slug);
 
     // Auto-create pipeline API key
     try {
       const res = await fetch(`/api/workspace/${workspace.id}/api-keys`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
+        credentials: "include",
         body: JSON.stringify({ name: "Pipeline" }),
       });
 
@@ -95,12 +101,16 @@ export default function NewWorkspacePage() {
         setApiKey({ plaintext: result.data.plaintext, slug: workspace.slug });
         return; // Don't redirect yet — show the key first
       }
-    } catch {
-      // Key creation failed silently — user can create one manually later
-    }
 
-    router.push(`/${workspace.slug}/board`);
-    router.refresh();
+      const result = await res.json().catch(() => null);
+      console.error("API key creation failed:", res.status, result);
+      setServerError(
+        result?.error?.message ?? `API key creation failed (${res.status}). You can create one later in Settings → API Keys.`
+      );
+    } catch (err) {
+      console.error("API key creation error:", err);
+      setServerError("API key creation failed. You can create one later in Settings → API Keys.");
+    }
   }
 
   // Show API key after workspace creation
@@ -162,9 +172,24 @@ export default function NewWorkspacePage() {
         <CardContent>
           <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-4">
             {serverError && (
-              <p className="rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive">
-                {serverError}
-              </p>
+              <div className="rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive">
+                <p>{serverError}</p>
+                {createdSlug && (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    className="mt-2 w-full"
+                    onClick={() => {
+                      router.push(`/${createdSlug}/board`);
+                      router.refresh();
+                    }}
+                  >
+                    Continue to board
+                    <ArrowRight className="ml-2 h-4 w-4" />
+                  </Button>
+                )}
+              </div>
             )}
             <div className="flex flex-col gap-1.5">
               <Label htmlFor="name">Workspace name</Label>
