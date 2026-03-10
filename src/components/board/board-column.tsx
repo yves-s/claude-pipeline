@@ -12,6 +12,8 @@ interface BoardColumnProps {
   label: string;
   tickets: Ticket[];
   onTicketClick: (ticket: Ticket) => void;
+  isAgentActive?: (ticketId: string) => boolean;
+  getAgentActivity?: (ticketId: string) => { agent_type: string; event_type: string } | null;
 }
 
 const COLUMN_DOT: Record<TicketStatus, string> = {
@@ -28,6 +30,8 @@ export function BoardColumn({
   label,
   tickets,
   onTicketClick,
+  isAgentActive,
+  getAgentActivity,
 }: BoardColumnProps) {
   const { setNodeRef, isOver } = useDroppable({ id: status });
 
@@ -66,6 +70,8 @@ export function BoardColumn({
               key={ticket.id}
               ticket={ticket}
               onClick={onTicketClick}
+              agentActive={isAgentActive?.(ticket.id) ?? false}
+              agentActivity={getAgentActivity?.(ticket.id) ?? null}
             />
           ))}
         </SortableContext>

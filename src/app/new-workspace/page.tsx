@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useRouter } from "next/navigation";
+import { Copy, Check, ArrowRight } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { createWorkspaceSchema, type CreateWorkspaceInput } from "@/lib/validations/workspace";
 import {
@@ -30,6 +31,8 @@ function slugify(name: string): string {
 export default function NewWorkspacePage() {
   const router = useRouter();
   const [serverError, setServerError] = useState<string | null>(null);
+  const [apiKey, setApiKey] = useState<{ plaintext: string; slug: string } | null>(null);
+  const [copied, setCopied] = useState(false);
 
   const {
     register,
@@ -47,6 +50,13 @@ export default function NewWorkspacePage() {
     const name = e.target.value;
     setValue("name", name);
     setValue("slug", slugify(name));
+  }
+
+  async function handleCopy() {
+    if (!apiKey) return;
+    await navigator.clipboard.writeText(apiKey.plaintext);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
   }
 
   async function onSubmit(data: CreateWorkspaceInput) {
@@ -72,8 +82,72 @@ export default function NewWorkspacePage() {
       return;
     }
 
+    // Auto-create pipeline API key
+    try {
+      const res = await fetch(`/api/workspace/${workspace.id}/api-keys`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name: "Pipeline" }),
+      });
+
+      if (res.ok) {
+        const result = await res.json();
+        setApiKey({ plaintext: result.data.plaintext, slug: workspace.slug });
+        return; // Don't redirect yet — show the key first
+      }
+    } catch {
+      // Key creation failed silently — user can create one manually later
+    }
+
     router.push(`/${workspace.slug}/board`);
     router.refresh();
+  }
+
+  // Show API key after workspace creation
+  if (apiKey) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-muted/30 px-4">
+        <Card className="w-full max-w-sm">
+          <CardHeader className="text-center">
+            <CardTitle className="text-2xl">Workspace created</CardTitle>
+            <CardDescription>
+              Your pipeline API key was auto-generated. Copy it now — it won&apos;t be shown again.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="flex flex-col gap-4">
+            <div className="flex flex-col gap-1.5">
+              <Label>API Key</Label>
+              <div className="flex items-center gap-2">
+                <code className="flex-1 rounded-md border bg-muted/50 px-3 py-2 text-xs font-mono break-all select-all">
+                  {apiKey.plaintext}
+                </code>
+                <Button
+                  variant="outline"
+                  size="icon"
+                  className="shrink-0"
+                  onClick={handleCopy}
+                >
+                  {copied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
+                </Button>
+              </div>
+              <p className="text-xs text-muted-foreground">
+                Use this key as <code className="text-[11px]">Authorization: Bearer {apiKey.plaintext.slice(0, 12)}…</code>
+              </p>
+            </div>
+            <Button
+              className="w-full"
+              onClick={() => {
+                router.push(`/${apiKey.slug}/board`);
+                router.refresh();
+              }}
+            >
+              Continue to board
+              <ArrowRight className="ml-2 h-4 w-4" />
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
+    );
   }
 
   return (

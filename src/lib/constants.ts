@@ -42,3 +42,24 @@ export const PRIORITY_COLORS: Record<TicketPriority, string> = {
   medium: "bg-orange-100 text-orange-700",
   high: "bg-red-100 text-red-700",
 };
+
+export const AGENT_TYPES = [
+  "orchestrator",
+  "frontend",
+  "backend",
+  "data-engineer",
+  "qa",
+  "devops",
+  "security",
+] as const;
+
+export type AgentType = (typeof AGENT_TYPES)[number];
+
+export const EVENT_TYPES = [
+  "agent_started",
+  "agent_completed",
+  "agent_spawned",
+  "tool_use",
+] as const;
+
+export type EventType = (typeof EVENT_TYPES)[number];

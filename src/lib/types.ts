@@ -49,6 +49,16 @@ export interface Project {
   updated_at: string;
 }
 
+export interface TaskEvent {
+  id: string;
+  ticket_id: string;
+  project_id: string | null;
+  agent_type: string;
+  event_type: string;
+  metadata: Record<string, unknown>;
+  created_at: string;
+}
+
 export interface Ticket {
   id: string;
   workspace_id: string;

@@ -11,6 +11,8 @@ interface TicketCardProps {
   ticket: Ticket;
   onClick: (ticket: Ticket) => void;
   isDragOverlay?: boolean;
+  agentActive?: boolean;
+  agentActivity?: { agent_type: string; event_type: string } | null;
 }
 
 const PRIORITY_BORDER: Record<string, string> = {
@@ -37,6 +39,8 @@ export function TicketCard({
   ticket,
   onClick,
   isDragOverlay = false,
+  agentActive = false,
+  agentActivity = null,
 }: TicketCardProps) {
   const {
     attributes,
@@ -72,9 +76,24 @@ export function TicketCard({
     >
       <div className="p-3 flex flex-col gap-2">
         <div className="flex flex-col gap-1">
-          <span className="font-mono text-[10px] text-muted-foreground">
-            #{ticket.number}
-          </span>
+          <div className="flex items-center gap-1.5">
+            <span className="font-mono text-[10px] text-muted-foreground">
+              #{ticket.number}
+            </span>
+            {agentActive && (
+              <span
+                className="relative flex h-2 w-2"
+                title={
+                  agentActivity
+                    ? `${agentActivity.agent_type}: ${agentActivity.event_type}`
+                    : "Agent active"
+                }
+              >
+                <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75" />
+                <span className="relative inline-flex h-2 w-2 rounded-full bg-emerald-500" />
+              </span>
+            )}
+          </div>
           <p className="text-sm font-medium leading-snug line-clamp-3">
             {ticket.title}
           </p>

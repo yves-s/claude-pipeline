@@ -38,7 +38,9 @@ export async function updateSession(request: NextRequest) {
     request.nextUrl.pathname === "/" ||
     request.nextUrl.pathname.startsWith("/invite") ||
     request.nextUrl.pathname.startsWith("/auth") ||
-    request.nextUrl.pathname.startsWith("/api/v1/pipeline");
+    request.nextUrl.pathname.startsWith("/api/v1/pipeline") ||
+    request.nextUrl.pathname.startsWith("/api/tickets") ||
+    request.nextUrl.pathname.startsWith("/api/events");
 
   // Redirect authenticated users away from auth pages
   if (user && isAuthRoute) {

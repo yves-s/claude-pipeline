@@ -20,6 +20,7 @@ import type { Ticket } from "@/lib/types";
 import { BoardColumn } from "./board-column";
 import { TicketCard } from "./ticket-card";
 import { TicketDetailSheet } from "@/components/tickets/ticket-detail-sheet";
+import { useAgentActivity } from "@/lib/hooks/use-agent-activity";
 
 interface BoardProps {
   initialTickets: Ticket[];
@@ -31,6 +32,8 @@ export function Board({ initialTickets, workspaceId }: BoardProps) {
   const [activeTicket, setActiveTicket] = useState<Ticket | null>(null);
   const [selectedTicket, setSelectedTicket] = useState<Ticket | null>(null);
   const [sheetOpen, setSheetOpen] = useState(false);
+
+  const { isActive, getActivity } = useAgentActivity(workspaceId);
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -146,6 +149,8 @@ export function Board({ initialTickets, workspaceId }: BoardProps) {
                 label={col.label}
                 tickets={getTicketsForColumn(col.status)}
                 onTicketClick={handleTicketClick}
+                isAgentActive={isActive}
+                getAgentActivity={getActivity}
               />
             ))}
           </div>
