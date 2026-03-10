@@ -200,13 +200,11 @@ if [ "$MODE" = "update" ]; then
   done
 
   # Scripts
-  if [ -d "$FRAMEWORK_DIR/scripts" ]; then
-    for f in "$FRAMEWORK_DIR/scripts/"*; do
-      [ -f "$f" ] || continue
-      fname=$(basename "$f")
-      diff_file "$f" "$PROJECT_DIR/.claude/scripts/$fname" ".claude/scripts/$fname"
-    done
-  fi
+  for f in "$FRAMEWORK_DIR/.claude/scripts/"*; do
+    [ -f "$f" ] || continue
+    fname=$(basename "$f")
+    diff_file "$f" "$PROJECT_DIR/.claude/scripts/$fname" ".claude/scripts/$fname"
+  done
 
   # Settings
   diff_file "$FRAMEWORK_DIR/settings.json" "$PROJECT_DIR/.claude/settings.json" ".claude/settings.json"
@@ -264,14 +262,11 @@ if [ "$MODE" = "update" ]; then
   echo "  ✓ $(ls "$FRAMEWORK_DIR/skills/"*.md | wc -l | tr -d ' ') framework skills (project-specific skills untouched)"
 
   echo "Updating scripts..."
-  if [ -d "$FRAMEWORK_DIR/scripts" ]; then
-    mkdir -p "$PROJECT_DIR/.claude/scripts"
-    cp "$FRAMEWORK_DIR/scripts/"* "$PROJECT_DIR/.claude/scripts/"
-    chmod +x "$PROJECT_DIR/.claude/scripts/"*.py 2>/dev/null || true
-    echo "  ✓ $(ls "$FRAMEWORK_DIR/scripts/"* 2>/dev/null | wc -l | tr -d ' ') scripts"
-  else
-    echo "  ~ no scripts to update"
-  fi
+  mkdir -p "$PROJECT_DIR/.claude/scripts"
+  cp "$FRAMEWORK_DIR/.claude/scripts/"* "$PROJECT_DIR/.claude/scripts/" 2>/dev/null || true
+  chmod +x "$PROJECT_DIR/.claude/scripts/"*.sh 2>/dev/null || true
+  chmod +x "$PROJECT_DIR/.claude/scripts/"*.py 2>/dev/null || true
+  echo "  ✓ scripts"
 
   echo "Updating pipeline runner..."
   cp "$FRAMEWORK_DIR/pipeline/run.sh" "$PROJECT_DIR/.pipeline/run.sh"
@@ -312,41 +307,11 @@ fi
 echo "Project configuration:"
 echo ""
 
-read -p "  Project name (kebab-case, e.g. lb-website): " PROJECT_NAME
+read -p "  Project name (kebab-case, e.g. my-app): " PROJECT_NAME
 PROJECT_NAME=${PROJECT_NAME:-myproject}
 
-read -p "  Description: " PROJECT_DESC
+read -p "  Description (optional): " PROJECT_DESC
 PROJECT_DESC=${PROJECT_DESC:-""}
-
-read -p "  Package manager (pnpm/npm/yarn/bun) [pnpm]: " PKG_MANAGER
-PKG_MANAGER=${PKG_MANAGER:-pnpm}
-
-read -p "  Build command (web) [${PKG_MANAGER} run build]: " BUILD_WEB
-BUILD_WEB=${BUILD_WEB:-"${PKG_MANAGER} run build"}
-
-read -p "  Test command [npx vitest run]: " BUILD_TEST
-BUILD_TEST=${BUILD_TEST:-"npx vitest run"}
-
-read -p "  Branch prefix [feature/]: " BRANCH_PREFIX
-BRANCH_PREFIX=${BRANCH_PREFIX:-"feature/"}
-
-echo ""
-echo "Supabase integration (leave empty to skip):"
-echo ""
-echo "  Voraussetzung: Supabase MCP muss in Claude Code verbunden sein."
-echo "  (Claude Desktop: Settings → Integrations → Supabase)"
-echo ""
-echo "  Die Project ID findest du in deiner Supabase Dashboard URL:"
-echo "  https://supabase.com/dashboard/project/<PROJECT_ID>"
-echo ""
-read -p "  Supabase Project ID [skip]: " SUPABASE_PROJECT_ID
-
-if [ -n "$SUPABASE_PROJECT_ID" ]; then
-  echo ""
-  echo "  Optional: Projektname zum Filtern von Tickets in der DB."
-  echo "  Falls du mehrere Projekte in einer Supabase-Instanz hast."
-  read -p "  Projektname (leer = kein Filter): " SUPABASE_PROJECT_NAME
-fi
 
 echo ""
 
@@ -376,32 +341,16 @@ cp "$FRAMEWORK_DIR/skills/"*.md "$PROJECT_DIR/.claude/skills/"
 echo "  ✓ $(ls "$FRAMEWORK_DIR/skills/"*.md | wc -l | tr -d ' ') skills"
 
 # --- Copy scripts ---
-if [ -d "$FRAMEWORK_DIR/scripts" ]; then
-  echo "Installing scripts..."
-  mkdir -p "$PROJECT_DIR/.claude/scripts"
-  cp "$FRAMEWORK_DIR/scripts/"* "$PROJECT_DIR/.claude/scripts/"
-  chmod +x "$PROJECT_DIR/.claude/scripts/"*.py 2>/dev/null || true
-  echo "  ✓ $(ls "$FRAMEWORK_DIR/scripts/"* 2>/dev/null | wc -l | tr -d ' ') scripts"
-fi
+echo "Installing scripts..."
+mkdir -p "$PROJECT_DIR/.claude/scripts"
+cp "$FRAMEWORK_DIR/.claude/scripts/"* "$PROJECT_DIR/.claude/scripts/" 2>/dev/null || true
+chmod +x "$PROJECT_DIR/.claude/scripts/"*.sh 2>/dev/null || true
+chmod +x "$PROJECT_DIR/.claude/scripts/"*.py 2>/dev/null || true
+echo "  ✓ scripts"
 
 # --- Generate project.json ---
 if [ "$OVERWRITE_CONFIG" != "N" ]; then
   echo "Generating project.json..."
-
-  SUPABASE_BLOCK=""
-  if [ -n "$SUPABASE_PROJECT_ID" ]; then
-    SUPABASE_PROJECT_NAME_JSON="${SUPABASE_PROJECT_NAME:-null}"
-    if [ "$SUPABASE_PROJECT_NAME_JSON" != "null" ]; then
-      SUPABASE_PROJECT_NAME_JSON="\"${SUPABASE_PROJECT_NAME_JSON}\""
-    fi
-    SUPABASE_BLOCK=$(cat <<SUPABASE_EOF
-  "supabase": {
-    "project_id": "${SUPABASE_PROJECT_ID}",
-    "project_name": ${SUPABASE_PROJECT_NAME_JSON}
-  },
-SUPABASE_EOF
-)
-  fi
 
   cat > "$PROJECT_DIR/project.json" <<CONFIG_EOF
 {
@@ -409,13 +358,19 @@ SUPABASE_EOF
   "description": "${PROJECT_DESC}",
   "stack": {},
   "build": {
-    "web": "${BUILD_WEB}",
-    "test": "${BUILD_TEST}"
+    "web": "pnpm run build",
+    "test": "npx vitest run"
   },
   "paths": {},
-  ${SUPABASE_BLOCK}
+  "supabase": {
+    "project_id": ""
+  },
+  "pipeline": {
+    "project_id": "",
+    "project_name": null,
+    "workspace_id": ""
+  },
   "conventions": {
-    "branch_prefix": "${BRANCH_PREFIX}",
     "commit_format": "conventional",
     "language": "de"
   }
@@ -453,13 +408,13 @@ echo "  Setup complete → $FRAMEWORK_VERSION"
 echo "================================================"
 echo ""
 echo "Next steps:"
-echo "  1. Edit CLAUDE.md — architecture, conventions, domain knowledge"
-echo "  2. Edit project.json — stack, paths"
-echo "  3. Run /setup-db in Claude Code to create database tables"
-echo "  4. Add skills in .claude/skills/ (optional)"
-echo "  5. Test: claude → /status"
+echo "  1. Edit CLAUDE.md        — Architektur, Konventionen, Domain-Wissen"
+echo "  2. Edit project.json     — Stack, Build-Commands, Pfade anpassen"
+echo "  3. Run /setup-db         — In Claude Code öffnen und /setup-db ausführen"
+echo "                             (verbindet Projekt mit Agentic Dev Board)"
+echo "  4. .claude/skills/       — Eigene Skills hinzufügen (optional)"
 echo ""
-echo "Update framework later:"
+echo "Framework updaten:"
 echo "  $(basename "$FRAMEWORK_DIR")/setup.sh --update"
 echo ""
 echo "Pipeline (VPS/CI):"
