@@ -118,7 +118,13 @@ export function TicketDetailSheet({
   useEffect(() => {
     autoResize(titleRef.current);
     autoResize(bodyRef.current);
-  }, [current?.id]);
+    // Re-run after sheet open animation completes
+    const timer = setTimeout(() => {
+      autoResize(titleRef.current);
+      autoResize(bodyRef.current);
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [current?.id, open]);
 
   useEffect(() => {
     if (editingBody && bodyRef.current) {
