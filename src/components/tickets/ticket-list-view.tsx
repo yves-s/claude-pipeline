@@ -13,6 +13,7 @@ import type { TicketStatus } from "@/lib/constants";
 import { TICKET_STATUSES } from "@/lib/constants";
 import { cn } from "@/lib/utils";
 import { useRouter, usePathname, useSearchParams } from "next/navigation";
+import { useTicketRealtime } from "@/lib/hooks/use-ticket-realtime";
 
 const PAGE_SIZE = 30;
 
@@ -47,6 +48,7 @@ export function TicketListView({
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const [tickets, setTickets] = useState<Ticket[]>(initialTickets);
+  useTicketRealtime(workspaceId, setTickets);
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<TicketStatus | "all">("all");
   const [selectedTicket, setSelectedTicket] = useState<Ticket | null>(null);

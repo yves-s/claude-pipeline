@@ -28,6 +28,7 @@ import { AgentPanel } from "./agent-panel";
 import { useAgentActivity } from "@/lib/hooks/use-agent-activity";
 import { BoardToolbar } from "./board-toolbar";
 import { useBoardFilters } from "@/lib/hooks/use-board-filters";
+import { useTicketRealtime } from "@/lib/hooks/use-ticket-realtime";
 
 const COLUMN_DOT: Record<TicketStatus, string> = {
   backlog: "bg-slate-400",
@@ -96,6 +97,7 @@ export function Board({
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const [tickets, setTickets] = useState<Ticket[]>(initialTickets);
+  useTicketRealtime(workspaceId, setTickets);
   const [activeTicket, setActiveTicket] = useState<Ticket | null>(null);
   const [selectedTicket, setSelectedTicket] = useState<Ticket | null>(null);
   const [sheetOpen, setSheetOpen] = useState(false);
