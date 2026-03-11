@@ -24,6 +24,8 @@ export function useTicketRealtime(
   useEffect(() => {
     const supabase = createClient();
 
+    // No server-side filter — RLS (is_workspace_member) already scopes events
+    // to the user's workspaces. Client-side workspace check below is belt-and-suspenders.
     const channel = supabase
       .channel(`tickets-realtime-${workspaceId}`)
       .on(
@@ -32,10 +34,10 @@ export function useTicketRealtime(
           event: "INSERT",
           schema: "public",
           table: "tickets",
-          filter: `workspace_id=eq.${workspaceId}`,
         },
         (payload) => {
           const newTicket = payload.new as Ticket;
+          if (newTicket.workspace_id !== workspaceId) return;
           let added = false;
           setTickets((prev) => {
             if (prev.some((t) => t.id === newTicket.id)) return prev;
@@ -53,10 +55,10 @@ export function useTicketRealtime(
           event: "UPDATE",
           schema: "public",
           table: "tickets",
-          filter: `workspace_id=eq.${workspaceId}`,
         },
         (payload) => {
           const updated = payload.new as Ticket;
+          if (updated.workspace_id !== workspaceId) return;
           let oldStatus: string | undefined;
           setTickets((prev) => {
             const idx = prev.findIndex((t) => t.id === updated.id);
@@ -87,7 +89,6 @@ export function useTicketRealtime(
           event: "DELETE",
           schema: "public",
           table: "tickets",
-          filter: `workspace_id=eq.${workspaceId}`,
         },
         (payload) => {
           const id = (payload.old as { id: string }).id;
@@ -103,7 +104,11 @@ export function useTicketRealtime(
           }
         }
       )
-      .subscribe();
+      .subscribe((status, err) => {
+        if (err) {
+          console.error("[useTicketRealtime] subscription error:", err);
+        }
+      });
 
     return () => {
       supabase.removeChannel(channel);
