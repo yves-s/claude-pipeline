@@ -1,6 +1,4 @@
-// HookCallback is a compatibility shim — @anthropic-ai/claude-agent-sdk does not export
-// this type in the installed version. Update the import below if/when the SDK exposes it.
-type HookCallback = (input: unknown) => Promise<{ async: boolean }>;
+import type { HookCallback, SubagentStartHookInput, SubagentStopHookInput, PostToolUseHookInput, HookCallbackMatcher, HookEvent } from "@anthropic-ai/claude-agent-sdk";
 
 export interface EventConfig {
   apiUrl: string;
@@ -27,37 +25,38 @@ async function postEvent(config: EventConfig, payload: Record<string, unknown>):
   }
 }
 
-export function createEventHooks(config: EventConfig) {
+export function createEventHooks(config: EventConfig): Partial<Record<HookEvent, HookCallbackMatcher[]>> {
   const onAgentStarted: HookCallback = async (input) => {
-    const agentType = (input as Record<string, unknown>).agent_type ?? "unknown";
+    const hookInput = input as SubagentStartHookInput;
     await postEvent(config, {
-      agent_type: agentType,
+      agent_type: hookInput.agent_type,
       event_type: "agent_started",
     });
-    return { async: true };
+    return { async: true as const };
   };
 
   const onAgentCompleted: HookCallback = async (input) => {
-    const agentType = (input as Record<string, unknown>).agent_type ?? "unknown";
+    const hookInput = input as SubagentStopHookInput;
+    // SubagentStop doesn't carry agent_type — extract from agent_id if possible
     await postEvent(config, {
-      agent_type: agentType,
+      agent_type: hookInput.agent_id ?? "unknown",
       event_type: "completed",
     });
-    return { async: true };
+    return { async: true as const };
   };
 
   const onFileChanged: HookCallback = async (input) => {
-    const postInput = input as Record<string, unknown>;
-    const toolInput = (postInput.tool_input ?? {}) as Record<string, unknown>;
+    const hookInput = input as PostToolUseHookInput;
+    const toolInput = (hookInput.tool_input ?? {}) as Record<string, unknown>;
     await postEvent(config, {
-      agent_type: (postInput.agent_type as string) ?? "orchestrator",
+      agent_type: "orchestrator",
       event_type: "tool_use",
       metadata: {
-        tool_name: postInput.tool_name ?? "unknown",
+        tool_name: hookInput.tool_name ?? "unknown",
         file_path: toolInput.file_path ?? "",
       },
     });
-    return { async: true };
+    return { async: true as const };
   };
 
   return {
