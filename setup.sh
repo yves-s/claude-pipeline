@@ -212,6 +212,8 @@ if [ "$MODE" = "update" ]; then
 
   if [ "$CHANGES" -eq 0 ]; then
     echo "  Everything up to date."
+    # Still update version marker so it stays in sync
+    echo "$FRAMEWORK_VERSION" > "$VERSION_FILE"
     echo ""
     exit 0
   fi
