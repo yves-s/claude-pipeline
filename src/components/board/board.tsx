@@ -63,6 +63,17 @@ function buildProjectGroups(
     map.get(key)!.tickets.push(ticket);
   }
 
+  // Add empty groups for projects that have no tickets yet
+  for (const project of projects) {
+    if (!map.has(project.id)) {
+      map.set(project.id, {
+        projectId: project.id,
+        projectName: project.name,
+        tickets: [],
+      });
+    }
+  }
+
   const noProject = map.get("none");
   const withProject = Array.from(map.values())
     .filter((g) => g.projectId !== null)
