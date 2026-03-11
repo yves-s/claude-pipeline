@@ -36,3 +36,6 @@ build/
 .idea/
 *.swp
 *.swo
+
+# Pipeline TypeScript
+pipeline/node_modules/
