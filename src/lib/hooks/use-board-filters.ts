@@ -12,6 +12,8 @@ export interface BoardFilterState {
   sortDir: "asc" | "desc";
   groupByProject: boolean;
   search: string;
+  /** Project IDs (or "none") that are collapsed in the grouped board view */
+  collapsedGroups: string[];
 }
 
 export const DEFAULT_FILTERS: BoardFilterState = {
@@ -23,6 +25,7 @@ export const DEFAULT_FILTERS: BoardFilterState = {
   sortDir: "desc",
   groupByProject: false,
   search: "",
+  collapsedGroups: [],
 };
 
 function storageKey(slug: string) {
@@ -60,5 +63,24 @@ export function useBoardFilters(workspaceSlug: string) {
     [workspaceSlug]
   );
 
-  return { filters, updateFilters, hydrated };
+  const toggleGroupCollapsed = useCallback(
+    (groupKey: string) => {
+      setFilters((prev) => {
+        const collapsed = prev.collapsedGroups.includes(groupKey)
+          ? prev.collapsedGroups.filter((k) => k !== groupKey)
+          : [...prev.collapsedGroups, groupKey];
+        const next = { ...prev, collapsedGroups: collapsed };
+        try {
+          const { search, ...persist } = next;
+          localStorage.setItem(storageKey(workspaceSlug), JSON.stringify(persist));
+        } catch {
+          // ignore
+        }
+        return next;
+      });
+    },
+    [workspaceSlug]
+  );
+
+  return { filters, updateFilters, toggleGroupCollapsed, hydrated };
 }

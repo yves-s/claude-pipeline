@@ -142,7 +142,7 @@ export function Board({
     projectId: string | null;
   }>({ open: false, status: "backlog", projectId: null });
 
-  const { filters, updateFilters } = useBoardFilters(workspaceSlug);
+  const { filters, updateFilters, toggleGroupCollapsed } = useBoardFilters(workspaceSlug);
 
   const ticketIds = useMemo(() => initialTickets.map((t) => t.id), [initialTickets]);
 
@@ -519,17 +519,22 @@ export function Board({
               </div>
 
               {/* Project group rows */}
-              {projectGroups.map((group) => (
-                <BoardGroupRow
-                  key={group.projectId ?? "none"}
-                  group={group}
-                  columns={visibleColumns}
-                  onTicketClick={handleTicketClick}
-                  isAgentActive={isActive}
-                  getAgentActivity={getActivity}
-                  onAddTicket={handleAddTicket}
-                />
-              ))}
+              {projectGroups.map((group) => {
+                const groupKey = group.projectId ?? "none";
+                return (
+                  <BoardGroupRow
+                    key={groupKey}
+                    group={group}
+                    columns={visibleColumns}
+                    onTicketClick={handleTicketClick}
+                    isAgentActive={isActive}
+                    getAgentActivity={getActivity}
+                    onAddTicket={handleAddTicket}
+                    collapsed={filters.collapsedGroups.includes(groupKey)}
+                    onToggleCollapsed={() => toggleGroupCollapsed(groupKey)}
+                  />
+                );
+              })}
             </div>
           ) : (
             <div className="flex h-full gap-4 p-6">

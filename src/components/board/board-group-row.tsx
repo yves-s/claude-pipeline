@@ -100,6 +100,8 @@ interface BoardGroupRowProps {
     ticketId: string
   ) => { agent_type: string; event_type: string } | null;
   onAddTicket?: (status: TicketStatus, projectId: string | null) => void;
+  collapsed?: boolean;
+  onToggleCollapsed?: () => void;
 }
 
 export function BoardGroupRow({
@@ -109,8 +111,12 @@ export function BoardGroupRow({
   isAgentActive,
   getAgentActivity,
   onAddTicket,
+  collapsed: controlledCollapsed,
+  onToggleCollapsed,
 }: BoardGroupRowProps) {
-  const [collapsed, setCollapsed] = useState(false);
+  const [localCollapsed, setLocalCollapsed] = useState(false);
+  const collapsed = controlledCollapsed ?? localCollapsed;
+  const toggleCollapsed = onToggleCollapsed ?? (() => setLocalCollapsed(!localCollapsed));
   const colorClass = group.projectId
     ? hashProjectColor(group.projectId)
     : "bg-slate-400";
@@ -128,7 +134,7 @@ export function BoardGroupRow({
     <div className="mb-3">
       {/* Group header — spans full width */}
       <button
-        onClick={() => setCollapsed(!collapsed)}
+        onClick={toggleCollapsed}
         className="flex items-center gap-2 px-1 py-2 w-full text-left hover:bg-muted/40 rounded-md transition-colors"
       >
         <ChevronRight
