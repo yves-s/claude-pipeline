@@ -11,6 +11,7 @@ export interface BoardFilterState {
   sortBy: "created_at" | "priority" | "number" | "due_date";
   sortDir: "asc" | "desc";
   groupByProject: boolean;
+  search: string;
 }
 
 export const DEFAULT_FILTERS: BoardFilterState = {
@@ -21,6 +22,7 @@ export const DEFAULT_FILTERS: BoardFilterState = {
   sortBy: "created_at",
   sortDir: "desc",
   groupByProject: false,
+  search: "",
 };
 
 function storageKey(slug: string) {
@@ -49,7 +51,8 @@ export function useBoardFilters(workspaceSlug: string) {
     (next: BoardFilterState) => {
       setFilters(next);
       try {
-        localStorage.setItem(storageKey(workspaceSlug), JSON.stringify(next));
+        const { search, ...persist } = next;
+        localStorage.setItem(storageKey(workspaceSlug), JSON.stringify(persist));
       } catch {
         // ignore
       }

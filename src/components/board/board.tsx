@@ -148,7 +148,8 @@ export function Board({
 
   // Open ticket from URL deeplink on mount
   useEffect(() => {
-    const ticketParam = searchParams.get("ticket");
+    const urlParams = new URLSearchParams(window.location.search);
+    const ticketParam = urlParams.get("ticket");
     if (ticketParam) {
       const num = parseInt(ticketParam.replace("T-", ""), 10);
       const ticket = tickets.find((t) => t.number === num);
@@ -159,6 +160,43 @@ export function Board({
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // Listen for open-ticket events from the command palette
+  useEffect(() => {
+    function handleOpenTicket(e: Event) {
+      const { number } = (e as CustomEvent<{ number: number }>).detail;
+      const local = tickets.find((t) => t.number === number);
+      if (local) {
+        setSelectedTicket(local);
+        setSheetOpen(true);
+        const params = new URLSearchParams(searchParams.toString());
+        params.set("ticket", `T-${local.number}`);
+        router.replace(`${pathname}?${params.toString()}`);
+        return;
+      }
+      // Ticket not loaded locally (paginated out) — fetch it
+      const supabase = createClient();
+      supabase
+        .from("tickets")
+        .select("*, project:projects(id, name, description, workspace_id, created_at, updated_at)")
+        .eq("workspace_id", workspaceId)
+        .eq("number", number)
+        .single()
+        .then(({ data }) => {
+          if (data) {
+            const ticket = data as Ticket;
+            setSelectedTicket(ticket);
+            setSheetOpen(true);
+            const params = new URLSearchParams(searchParams.toString());
+            params.set("ticket", `T-${ticket.number}`);
+            router.replace(`${pathname}?${params.toString()}`);
+          }
+        });
+    }
+    window.addEventListener("open-ticket", handleOpenTicket);
+    return () => window.removeEventListener("open-ticket", handleOpenTicket);
+  }, [tickets, searchParams, pathname, router, workspaceId]);
+
   const { isActive, getActivity, activeAgents } = useAgentActivity(workspaceId, ticketIds);
 
   const sensors = useSensors(
@@ -185,6 +223,17 @@ export function Board({
     if (filters.assigneeIds.length > 0) {
       result = result.filter((t) =>
         filters.assigneeIds.includes(t.assignee_id ?? "none")
+      );
+    }
+
+    // Board quickfilter — client-side search by title and number
+    if (filters.search) {
+      const term = filters.search.toLowerCase();
+      result = result.filter(
+        (t) =>
+          t.title.toLowerCase().includes(term) ||
+          `t-${t.number}`.includes(term) ||
+          `${t.number}`.includes(term)
       );
     }
 

@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { Sidebar } from "@/components/layout/sidebar";
 import { WorkspaceProvider } from "@/lib/workspace-context";
+import { CommandPalette } from "@/components/shared/command-palette";
 
 export default async function WorkspaceLayout({
   children,
@@ -53,6 +54,7 @@ export default async function WorkspaceLayout({
           {children}
         </main>
       </div>
+      <CommandPalette workspaceId={workspace.id} workspaceSlug={workspace.slug} />
     </WorkspaceProvider>
   );
 }

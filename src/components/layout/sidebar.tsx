@@ -10,6 +10,7 @@ import {
   ChevronDown,
   Check,
   Plus,
+  Search,
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { cn } from "@/lib/utils";
@@ -126,6 +127,15 @@ export function Sidebar({ workspace, userEmail, workspaces }: SidebarProps) {
             </Link>
           );
         })}
+        {/* Search shortcut */}
+        <button
+          onClick={() => document.dispatchEvent(new CustomEvent("open-command-palette"))}
+          className="flex items-center gap-2.5 rounded-md px-2.5 py-1.5 text-sm font-medium text-muted-foreground hover:bg-accent/50 hover:text-foreground transition-colors"
+        >
+          <Search className="h-4 w-4 shrink-0" />
+          Search
+          <kbd className="ml-auto text-[10px] text-muted-foreground/60 font-mono">⌘K</kbd>
+        </button>
       </nav>
 
       {/* User footer */}

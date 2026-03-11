@@ -266,7 +266,7 @@ RETURNING number, title, status;
 
 Use `project_id` from `pipeline.project_id` in `project.json` as the Supabase project for the MCP tool call.
 
-After a successful insert, confirm with: `✓ Ticket T-{number} created: {title}`
+After a successful insert, confirm with: `✓ Ticket T-{number} erstellt: {title}` (use the `T-` prefix with the number from `RETURNING number`, NEVER use `#`)
 
 ### Fallback — Only when no pipeline.project_id
 

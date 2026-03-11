@@ -1,7 +1,9 @@
 "use client";
 
-import { X, SlidersHorizontal, ArrowUpDown, Layers } from "lucide-react";
+import { X, SlidersHorizontal, ArrowUpDown, Layers, Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { useRef, useEffect } from "react";
 import {
   DropdownMenu,
   DropdownMenuTrigger,
@@ -45,6 +47,19 @@ export function BoardToolbar({
   projects,
   members,
 }: BoardToolbarProps) {
+  const searchRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    function handleKeyDown(e: KeyboardEvent) {
+      if (e.key === "/" && !["INPUT", "TEXTAREA", "SELECT"].includes((e.target as HTMLElement)?.tagName)) {
+        e.preventDefault();
+        searchRef.current?.focus();
+      }
+    }
+    document.addEventListener("keydown", handleKeyDown);
+    return () => document.removeEventListener("keydown", handleKeyDown);
+  }, []);
+
   const hasActiveFilters =
     filters.statuses.length > 0 ||
     filters.priorities.length > 0 ||
@@ -142,6 +157,35 @@ export function BoardToolbar({
   return (
     <div className="flex flex-col gap-2 border-b px-6 py-2.5">
       <div className="flex items-center gap-2 flex-wrap">
+        {/* Board quickfilter */}
+        <div className="relative">
+          <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-3 w-3 text-muted-foreground" />
+          <Input
+            ref={searchRef}
+            value={filters.search}
+            onChange={(e) => onChange({ ...filters, search: e.target.value })}
+            onKeyDown={(e) => {
+              if (e.key === "Escape") {
+                onChange({ ...filters, search: "" });
+                searchRef.current?.blur();
+              }
+            }}
+            placeholder="Filter tickets..."
+            className="h-7 w-44 pl-7 pr-7 text-xs"
+          />
+          {filters.search && (
+            <button
+              onClick={() => {
+                onChange({ ...filters, search: "" });
+                searchRef.current?.focus();
+              }}
+              className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+            >
+              <X className="h-3 w-3" />
+            </button>
+          )}
+        </div>
+
         {/* Filter dropdown */}
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
