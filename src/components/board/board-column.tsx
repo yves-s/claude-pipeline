@@ -67,7 +67,7 @@ export function BoardColumn({
       <div
         ref={setNodeRef}
         className={cn(
-          "flex flex-1 flex-col gap-2 rounded-xl p-2 min-h-[200px] transition-colors",
+          "flex flex-1 flex-col gap-2 rounded-xl p-2 min-h-[200px] overflow-y-auto transition-colors",
           isOver
             ? "bg-primary/5 ring-1 ring-primary/20"
             : "bg-muted/50"
