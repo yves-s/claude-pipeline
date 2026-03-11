@@ -20,7 +20,6 @@ import { useRouter, usePathname, useSearchParams } from "next/navigation";
 import { BOARD_COLUMNS, TICKETS_PER_COLUMN_PAGE } from "@/lib/constants";
 import type { TicketStatus, TicketPriority } from "@/lib/constants";
 import type { Ticket, Project, WorkspaceMember } from "@/lib/types";
-import { Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { BoardColumn } from "./board-column";
 import { BoardGroupRow, type ProjectGroup } from "./board-group-row";
@@ -537,7 +536,6 @@ export function Board({
                     allTicketsByStatus={(status: TicketStatus) => getTicketsForColumn(status)}
                     loadingMore={loadingMore}
                     onLoadMore={loadMore}
-                    isLastGroup={groupKey === (projectGroups[projectGroups.length - 1]?.projectId ?? "none")}
                   />
                 );
               })}

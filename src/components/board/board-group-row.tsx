@@ -42,6 +42,11 @@ function GroupCell({
   isAgentActive,
   getAgentActivity,
   onAddTicket,
+  hasMore,
+  isLoadingMore,
+  onLoadMore,
+  loadedCount,
+  totalCount,
 }: {
   status: TicketStatus;
   projectId: string | null;
@@ -52,6 +57,11 @@ function GroupCell({
     ticketId: string
   ) => { agent_type: string; event_type: string } | null;
   onAddTicket?: (status: TicketStatus, projectId: string | null) => void;
+  hasMore?: boolean;
+  isLoadingMore?: boolean;
+  onLoadMore?: () => void;
+  loadedCount?: number;
+  totalCount?: number;
 }) {
   const droppableId = `${status}__${projectId ?? "none"}`;
   const { setNodeRef, isOver } = useDroppable({ id: droppableId });
@@ -78,6 +88,23 @@ function GroupCell({
           />
         ))}
       </SortableContext>
+      {hasMore && onLoadMore && (
+        <button
+          type="button"
+          onClick={onLoadMore}
+          disabled={isLoadingMore}
+          className="mt-1 flex items-center justify-center gap-1.5 rounded-lg py-2 text-xs font-medium text-muted-foreground hover:text-foreground hover:bg-muted/80 transition-colors disabled:opacity-50"
+        >
+          {isLoadingMore ? (
+            <>
+              <Loader2 className="h-3 w-3 animate-spin" />
+              Laden…
+            </>
+          ) : (
+            `Mehr laden (${loadedCount}/${totalCount})`
+          )}
+        </button>
+      )}
       {onAddTicket && (
         <button
           onClick={() => onAddTicket(status, projectId)}
@@ -102,12 +129,11 @@ interface BoardGroupRowProps {
   onAddTicket?: (status: TicketStatus, projectId: string | null) => void;
   collapsed?: boolean;
   onToggleCollapsed?: () => void;
-  /** Column-level pagination (shown only on last group) */
+  /** Column-level pagination — passed through to each cell */
   columnTotalCounts?: Record<string, number>;
   allTicketsByStatus?: (status: TicketStatus) => Ticket[];
   loadingMore?: Record<string, boolean>;
   onLoadMore?: (status: TicketStatus) => void;
-  isLastGroup?: boolean;
 }
 
 export function BoardGroupRow({
@@ -123,7 +149,6 @@ export function BoardGroupRow({
   allTicketsByStatus,
   loadingMore,
   onLoadMore,
-  isLastGroup,
 }: BoardGroupRowProps) {
   const [localCollapsed, setLocalCollapsed] = useState(false);
   const collapsed = controlledCollapsed ?? localCollapsed;
@@ -167,9 +192,13 @@ export function BoardGroupRow({
 
       {/* Columns row */}
       {!collapsed && (
-        <>
-          <div className="flex gap-4 mt-1">
-            {columns.map((col) => (
+        <div className="flex gap-4 mt-1">
+          {columns.map((col) => {
+            const loaded = allTicketsByStatus?.(col.status);
+            const total = columnTotalCounts?.[col.status];
+            const hasMore = loaded && total ? loaded.length < total : false;
+
+            return (
               <GroupCell
                 key={col.status}
                 status={col.status}
@@ -179,44 +208,15 @@ export function BoardGroupRow({
                 isAgentActive={isAgentActive}
                 getAgentActivity={getAgentActivity}
                 onAddTicket={onAddTicket}
+                hasMore={hasMore}
+                isLoadingMore={loadingMore?.[col.status] ?? false}
+                onLoadMore={onLoadMore ? () => onLoadMore(col.status) : undefined}
+                loadedCount={loaded?.length}
+                totalCount={total}
               />
-            ))}
-          </div>
-
-          {/* Load-more buttons per column — rendered after the last group */}
-          {isLastGroup && onLoadMore && allTicketsByStatus && columnTotalCounts && (
-            <div className="flex gap-4 mt-2">
-              {columns.map((col) => {
-                const loaded = allTicketsByStatus(col.status);
-                const total = columnTotalCounts[col.status] ?? loaded.length;
-                const hasMore = loaded.length < total;
-                const loading = loadingMore?.[col.status] ?? false;
-
-                return (
-                  <div key={col.status} className="w-72 shrink-0 flex justify-center">
-                    {hasMore && (
-                      <button
-                        type="button"
-                        onClick={() => onLoadMore(col.status)}
-                        disabled={loading}
-                        className="flex items-center gap-1.5 rounded-lg py-2 px-3 text-xs font-medium text-muted-foreground hover:text-foreground hover:bg-muted/80 transition-colors disabled:opacity-50"
-                      >
-                        {loading ? (
-                          <>
-                            <Loader2 className="h-3 w-3 animate-spin" />
-                            Laden…
-                          </>
-                        ) : (
-                          `Mehr laden (${loaded.length}/${total})`
-                        )}
-                      </button>
-                    )}
-                  </div>
-                );
-              })}
-            </div>
-          )}
-        </>
+            );
+          })}
+        </div>
       )}
     </div>
   );
