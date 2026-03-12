@@ -167,7 +167,7 @@ export function BoardGroupRow({
       {/* Group header — spans full width */}
       <button
         onClick={toggleCollapsed}
-        className="flex items-center gap-2 px-1 py-2 w-full text-left hover:bg-muted/40 rounded-md transition-colors"
+        className="flex items-center gap-2 px-1 py-2 w-full text-left bg-background hover:bg-muted/40 rounded-md transition-colors sticky top-7 z-10"
       >
         <ChevronRight
           className={cn(

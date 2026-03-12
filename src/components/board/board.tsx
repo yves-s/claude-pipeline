@@ -493,7 +493,7 @@ export function Board({
         projects={projects}
         members={members}
       />
-      <div className="flex-1 overflow-x-auto">
+      <div className="flex-1 overflow-auto">
         <DndContext
           sensors={sensors}
           collisionDetection={columnAwareCollision}
@@ -502,9 +502,9 @@ export function Board({
           onDragEnd={handleDragEnd}
         >
           {filters.groupByProject ? (
-            <div className="h-full p-6 min-w-fit">
+            <div className="min-h-full p-6 min-w-fit">
               {/* Column headers — sticky top */}
-              <div className="flex gap-4 mb-4 sticky top-0 z-10 bg-background pb-2">
+              <div className="flex gap-4 mb-4 sticky top-0 z-20 bg-background pb-2">
                 {visibleColumns.map((col) => {
                   const count = columnCounts[col.status] ?? filteredTickets.filter(
                     (t) => t.status === col.status
