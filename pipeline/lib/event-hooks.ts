@@ -37,9 +37,8 @@ export function createEventHooks(config: EventConfig): Partial<Record<HookEvent,
 
   const onAgentCompleted: HookCallback = async (input) => {
     const hookInput = input as SubagentStopHookInput;
-    // SubagentStop doesn't carry agent_type — extract from agent_id if possible
     await postEvent(config, {
-      agent_type: hookInput.agent_id ?? "unknown",
+      agent_type: hookInput.agent_type,
       event_type: "completed",
     });
     return { async: true as const };
@@ -49,7 +48,7 @@ export function createEventHooks(config: EventConfig): Partial<Record<HookEvent,
     const hookInput = input as PostToolUseHookInput;
     const toolInput = (hookInput.tool_input ?? {}) as Record<string, unknown>;
     await postEvent(config, {
-      agent_type: "orchestrator",
+      agent_type: hookInput.agent_type ?? "orchestrator",
       event_type: "tool_use",
       metadata: {
         tool_name: hookInput.tool_name ?? "unknown",

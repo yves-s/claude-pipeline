@@ -1,11 +1,8 @@
 import { readFileSync, readdirSync } from "node:fs";
 import { resolve, basename } from "node:path";
+import type { AgentDefinition } from "@anthropic-ai/claude-agent-sdk";
 
-export interface AgentDefinition {
-  description: string;
-  prompt: string;
-  tools?: string[];
-}
+export type { AgentDefinition };
 
 interface AgentFrontmatter {
   name: string;
@@ -13,7 +10,6 @@ interface AgentFrontmatter {
   tools: string;
   model: string;
   permissionMode: string;
-  skills?: string[];
 }
 
 function parseFrontmatter(content: string): { frontmatter: Partial<AgentFrontmatter>; body: string } {
@@ -61,10 +57,12 @@ export function loadAgents(projectDir: string): Record<string, AgentDefinition> 
       ? String(frontmatter.tools).split(",").map((t) => t.trim())
       : DEFAULT_TOOLS;
 
+    const model = frontmatter.model as AgentDefinition["model"];
     agents[name] = {
       description: String(frontmatter.description ?? `${name} agent`),
       prompt: body.trim(),
       tools,
+      ...(model && model !== "inherit" ? { model } : {}),
     };
   }
 
