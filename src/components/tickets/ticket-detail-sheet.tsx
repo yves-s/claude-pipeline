@@ -94,7 +94,6 @@ export function TicketDetailSheet({
   const [copiedNumber, setCopiedNumber] = useState(false);
   const [editingBody, setEditingBody] = useState(false);
   const [projects, setProjects] = useState<Project[]>([]);
-  const titleRef = useRef<HTMLTextAreaElement>(null);
   const bodyRef = useRef<HTMLTextAreaElement>(null);
 
   useEffect(() => {
@@ -116,14 +115,7 @@ export function TicketDetailSheet({
   }, [open, workspace.id]);
 
   useEffect(() => {
-    autoResize(titleRef.current);
     autoResize(bodyRef.current);
-    // Re-run after sheet open animation completes
-    const timer = setTimeout(() => {
-      autoResize(titleRef.current);
-      autoResize(bodyRef.current);
-    }, 300);
-    return () => clearTimeout(timer);
   }, [current?.id, open]);
 
   useEffect(() => {
@@ -252,14 +244,12 @@ export function TicketDetailSheet({
           {/* Title */}
           <div className="px-8 pb-3">
             <textarea
-              ref={titleRef}
               key={current.id}
               defaultValue={current.title}
-              onInput={(e) => autoResize(e.currentTarget)}
               onBlur={handleTitleBlur}
               placeholder="Untitled"
               rows={1}
-              className="w-full resize-none bg-transparent text-2xl font-bold text-foreground placeholder:text-muted-foreground/40 outline-none overflow-hidden leading-snug"
+              className="w-full resize-none bg-transparent text-2xl font-bold text-foreground placeholder:text-muted-foreground/40 outline-none overflow-hidden leading-snug [field-sizing:content]"
             />
           </div>
 
