@@ -42,7 +42,14 @@ export function AgentPanel({
   tickets,
   onTicketClick,
 }: AgentPanelProps) {
-  if (activeAgents.length === 0) return null;
+  // Find in_progress tickets that don't have any active agent yet
+  const pendingTickets = tickets.filter(
+    (t) =>
+      t.status === "in_progress" &&
+      !activeAgents.some((a) => a.ticket_id === t.id)
+  );
+
+  if (activeAgents.length === 0 && pendingTickets.length === 0) return null;
 
   return (
     <div className="border-b bg-muted/20 px-6 py-2.5">
@@ -51,7 +58,7 @@ export function AgentPanel({
           <Bot className="h-3.5 w-3.5" />
           <span>Agents</span>
           <span className="flex h-4 min-w-4 items-center justify-center rounded-full bg-amber-500 px-1 text-[9px] font-bold text-white">
-            {activeAgents.length}
+            {activeAgents.length + pendingTickets.length}
           </span>
         </div>
 
@@ -93,6 +100,24 @@ export function AgentPanel({
               </button>
             );
           })}
+          {pendingTickets.map((ticket) => (
+            <button
+              key={`pending-${ticket.id}`}
+              onClick={() => onTicketClick(ticket)}
+              className="flex items-center gap-1.5 rounded-full border border-dashed border-emerald-300 bg-emerald-50 px-2.5 py-1 text-[11px] shrink-0 cursor-pointer transition-shadow hover:shadow-sm"
+            >
+              <span className="relative flex h-2 w-2">
+                <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75" />
+                <span className="relative inline-flex h-2 w-2 rounded-full bg-emerald-500" />
+              </span>
+              <span className="font-mono text-muted-foreground">
+                T-{ticket.number}
+              </span>
+              <span className="text-emerald-600">
+                Pipeline wird gestartet...
+              </span>
+            </button>
+          ))}
         </div>
       </div>
     </div>
