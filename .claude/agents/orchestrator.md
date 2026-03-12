@@ -1,7 +1,7 @@
 ---
 name: orchestrator
 description: Orchestriert die autonome Entwicklung. Analysiert Tickets, erstellt Specs, spawnt Experten-Agents und schließt mit Commit/PR/Merge ab. Use proactively when a ticket needs to be implemented end-to-end.
-tools: Read, Write, Edit, Bash, Grep, Glob, Task
+tools: Read, Write, Edit, Bash, Grep, Glob, Agent
 model: inherit
 permissionMode: bypassPermissions
 ---
@@ -31,14 +31,9 @@ Lies `project.json` für Stack, Build-Commands, Pfade und Supabase-Config.
 
 ### Phase 2: Implementierung (Agents mit konkreten Instruktionen)
 
-**Für JEDEN Agent-Spawn (PFLICHT falls `pipeline` in project.json konfiguriert):**
+**Agent-Events werden automatisch vom SDK getrackt.** Keine manuellen Event-Calls nötig.
 
-```
-VOR Agent-Start:   bash .pipeline/send-event.sh {N} {agent-type} agent_started
-NACH Agent-Ende:   bash .pipeline/send-event.sh {N} {agent-type} completed
-```
-
-Spawne Agents mit **exakten Code-Änderungen** im Prompt — nicht "lies die Spec".
+Spawne Agents via Agent-Tool mit **exakten Code-Änderungen** im Prompt — nicht "lies die Spec".
 
 **Agent-Auswahl (nur was nötig ist):**
 
@@ -68,10 +63,12 @@ Lies project.json für Pfade und Stack-Details.
 - Neue Seite/Feature ohne bestehendes Design System → `## Design-Modus: Greenfield` (creative-design Skill)
 - Bestehende Komponente erweitern → `## Design-Modus: Bestehend` (design + frontend-design Skills)
 
-**Parallelisierung:**
+**Parallelisierung (WICHTIG — spart 50%+ Zeit):**
+- **Mehrere Agent-Tool-Calls in EINER Response = parallele Ausführung.** Das SDK spawnt sie automatisch gleichzeitig.
 - Wenn Schema-Änderung nötig UND Code darauf aufbaut → data-engineer ZUERST, dann Rest parallel
-- Sonst → alle parallel
+- Sonst → frontend + backend + andere **in einer einzigen Response** spawnen
 - **Im Zweifel: parallel.** Agents arbeiten auf verschiedenen Dateien.
+- Beispiel: Ein Ticket braucht DB-Migration + API-Route + UI → data-engineer zuerst, dann backend + frontend gleichzeitig in einer Response
 
 ### Phase 3: Build-Check (Bash, kein Agent)
 
