@@ -4,7 +4,7 @@ import { useState, useCallback } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useRouter } from "next/navigation";
-import { Copy, Check, ArrowRight, CheckCircle2, AlertCircle, Loader2, LogOut } from "lucide-react";
+import { ArrowRight, CheckCircle2, AlertCircle, Loader2, LogOut } from "lucide-react";
 import { useSlugCheck } from "@/lib/hooks/use-slug-check";
 import { createClient } from "@/lib/supabase/client";
 import { createWorkspaceSchema, type CreateWorkspaceInput } from "@/lib/validations/workspace";
@@ -32,9 +32,7 @@ function slugify(name: string): string {
 export default function NewWorkspacePage() {
   const router = useRouter();
   const [serverError, setServerError] = useState<string | null>(null);
-  const [apiKey, setApiKey] = useState<{ plaintext: string; slug: string } | null>(null);
   const [createdSlug, setCreatedSlug] = useState<string | null>(null);
-  const [copied, setCopied] = useState(false);
   const [signingOut, setSigningOut] = useState(false);
 
   const {
@@ -70,13 +68,6 @@ export default function NewWorkspacePage() {
     router.push("/login");
   }
 
-  async function handleCopy() {
-    if (!apiKey) return;
-    await navigator.clipboard.writeText(apiKey.plaintext);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
-  }
-
   async function onSubmit(data: CreateWorkspaceInput) {
     setServerError(null);
     const supabase = createClient();
@@ -103,90 +94,7 @@ export default function NewWorkspacePage() {
     }
 
     setCreatedSlug(workspace.slug);
-
-    // Auto-create pipeline API key
-    try {
-      const res = await fetch(`/api/workspace/${workspace.id}/api-keys`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        credentials: "include",
-        body: JSON.stringify({ name: "Pipeline" }),
-      });
-
-      if (res.ok) {
-        const result = await res.json();
-        setApiKey({ plaintext: result.data.plaintext, slug: workspace.slug });
-        return; // Don't redirect yet — show the key first
-      }
-
-      const result = await res.json().catch(() => null);
-      console.error("API key creation failed:", res.status, result);
-      setServerError(
-        result?.error?.message ?? `API key creation failed (${res.status}). You can create one later in Settings → API Keys.`
-      );
-    } catch (err) {
-      console.error("API key creation error:", err);
-      setServerError("API key creation failed. You can create one later in Settings → API Keys.");
-    }
-  }
-
-  // Show API key after workspace creation
-  if (apiKey) {
-    return (
-      <div className="flex min-h-screen items-center justify-center bg-muted/30 px-4">
-        <Card className="w-full max-w-md">
-          <CardHeader className="text-center">
-            <CardTitle className="text-2xl">Workspace created</CardTitle>
-            <CardDescription>
-              Your pipeline API key was auto-generated. Copy it now — it won&apos;t be shown again.
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="flex flex-col gap-5">
-            <div className="flex flex-col gap-1.5">
-              <Label>API Key</Label>
-              <div className="flex items-center gap-2">
-                <code className="flex-1 rounded-md border bg-muted/50 px-3 py-2 text-xs font-mono break-all select-all">
-                  {apiKey.plaintext}
-                </code>
-                <Button
-                  variant="outline"
-                  size="icon"
-                  className="shrink-0"
-                  onClick={handleCopy}
-                >
-                  {copied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
-                </Button>
-              </div>
-            </div>
-            <div className="rounded-lg border bg-muted/30 px-4 py-3 text-xs text-muted-foreground flex flex-col gap-2">
-              <p className="font-medium text-foreground text-sm">What is this key for?</p>
-              <p>
-                This key connects external tools — like Claude Code, CI/CD pipelines, or custom scripts — to your workspace. They can create, read, and update tickets via the Pipeline API.
-              </p>
-              <p>
-                Add it to your <code className="rounded bg-muted px-1 py-0.5 text-[11px]">project.json</code> or pass it as a header:
-              </p>
-              <code className="rounded bg-muted px-2 py-1.5 text-[11px] block">
-                Authorization: Bearer {apiKey.plaintext.slice(0, 12)}…
-              </code>
-              <p>
-                You can manage keys anytime in <span className="font-medium text-foreground">Settings → API Keys</span>.
-              </p>
-            </div>
-            <Button
-              className="w-full"
-              onClick={() => {
-                router.push(`/${apiKey.slug}/board`);
-                router.refresh();
-              }}
-            >
-              Continue to board
-              <ArrowRight className="ml-2 h-4 w-4" />
-            </Button>
-          </CardContent>
-        </Card>
-      </div>
-    );
+    router.push(`/${workspace.slug}/board`);
   }
 
   return (
