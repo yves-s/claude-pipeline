@@ -40,7 +40,7 @@ interface ProjectSetupDialogProps {
   onRegenerateKey: () => Promise<string | null>;
 }
 
-type CopiedTarget = "cli" | "json" | "install" | null;
+type CopiedTarget = "cli" | "json" | "install" | "uuid" | null;
 
 const INSTALL_COMMAND = `git clone https://github.com/yves-s/agentic-dev-pipeline.git ~/.agentic-dev-pipeline
 cd /path/to/your/project
@@ -233,20 +233,41 @@ export function ProjectSetupDialog({
               </CollapsibleContent>
             </Collapsible>
 
-            {/* API Key management */}
-            <div className="border-t pt-3 flex items-center justify-between">
-              <div className="text-sm text-muted-foreground">
-                API Key: <code className="text-xs">{apiKey?.key_prefix ?? "\u2014"}...****</code>
+            {/* Project UUID + API Key management */}
+            <div className="border-t pt-3 space-y-2">
+              <div className="flex items-center justify-between">
+                <div className="text-sm text-muted-foreground flex items-center gap-2">
+                  <span>Project ID:</span>
+                  <code className="text-xs font-mono">{project.id}</code>
+                </div>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-7 w-7 shrink-0"
+                  onClick={() => copyToClipboard(project.id, "uuid")}
+                  title="Copy project UUID"
+                >
+                  {copied === "uuid" ? (
+                    <Check className="h-3.5 w-3.5" />
+                  ) : (
+                    <Copy className="h-3.5 w-3.5" />
+                  )}
+                </Button>
               </div>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => setShowRegenConfirm(true)}
-                disabled={regenerating}
-              >
-                <RefreshCw className={`h-3.5 w-3.5 mr-1.5 ${regenerating ? "animate-spin" : ""}`} />
-                Regenerate Key
-              </Button>
+              <div className="flex items-center justify-between">
+                <div className="text-sm text-muted-foreground">
+                  API Key: <code className="text-xs">{apiKey?.key_prefix ?? "\u2014"}...****</code>
+                </div>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setShowRegenConfirm(true)}
+                  disabled={regenerating}
+                >
+                  <RefreshCw className={`h-3.5 w-3.5 mr-1.5 ${regenerating ? "animate-spin" : ""}`} />
+                  Regenerate Key
+                </Button>
+              </div>
             </div>
           </div>
 
