@@ -1,14 +1,18 @@
-export interface TelegramUser {
-  id: string;
-  telegram_user_id: number;
-  workspace_id: string;
-  telegram_username: string | null;
-  created_at: string;
-}
-
 export interface Project {
   id: string;
   name: string;
+}
+
+export interface Workspace {
+  id: string;
+  name: string;
+  slug: string;
+  projects: Project[];
+}
+
+export interface UserState {
+  workspaces: Workspace[];
+  activeWorkspaceId: string | null;
 }
 
 export interface PendingTicket {

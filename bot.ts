@@ -6,10 +6,12 @@ import {
   structureTicket,
 } from "./lib/ai.js";
 import { supabase } from "./lib/supabase.js";
-import type { PendingTicket, Project } from "./lib/types.js";
+import type { PendingTicket, Project, Workspace, UserState } from "./lib/types.js";
 
 const bot = new Telegraf(process.env.TELEGRAM_BOT_TOKEN!);
-const workspaceId = process.env.WORKSPACE_ID!;
+
+// In-memory state: workspace state per chat
+const userStates = new Map<number, UserState>();
 
 // Pending ticket data per chat (waiting for project selection)
 const pendingTickets = new Map<number, PendingTicket>();
@@ -27,14 +29,21 @@ const mediaGroupBuffers = new Map<
 
 // ---------- Auth middleware ----------
 bot.use(async (ctx, next) => {
-  if (!ctx.from) return;
-  const user = await getAuthorizedUser(ctx.from.id);
-  if (!user) {
+  if (!ctx.from || !ctx.chat) return;
+  const workspaces = await getAuthorizedUser(ctx.from.id);
+  if (!workspaces || workspaces.length === 0) {
     await ctx.reply(
-      "Du bist nicht für diesen Bot registriert. Bitte kontaktiere einen Admin.",
+      "Du bist nicht mit dem Board verbunden. Verbinde deinen Telegram-Account über das Board.",
     );
     return;
   }
+  const existing = userStates.get(ctx.chat.id);
+  userStates.set(ctx.chat.id, {
+    workspaces,
+    activeWorkspaceId:
+      existing?.activeWorkspaceId ??
+      (workspaces.length === 1 ? workspaces[0].id : null),
+  });
   return next();
 });
 
@@ -46,8 +55,16 @@ bot.start(async (ctx) => {
       "- Text — einfach losschreiben\n" +
       "- Sprachnachricht — wird transkribiert\n" +
       "- Screenshot(s) — werden analysiert\n" +
-      "- Screenshot mit Text — beides wird kombiniert",
+      "- Screenshot mit Text — beides wird kombiniert\n\n" +
+      "/workspace — Workspace wechseln",
   );
+});
+
+// ---------- /workspace ----------
+bot.command("workspace", async (ctx) => {
+  const state = userStates.get(ctx.chat.id);
+  if (!state) return;
+  await showWorkspaceSelection(ctx.chat.id, state.workspaces);
 });
 
 // ---------- Helper: download file ----------
@@ -57,28 +74,41 @@ async function downloadFile(fileId: string): Promise<Buffer> {
   return Buffer.from(await response.arrayBuffer());
 }
 
+// ---------- Helper: show workspace selection ----------
+async function showWorkspaceSelection(
+  chatId: number,
+  workspaces: Workspace[],
+): Promise<void> {
+  const buttons = workspaces.map((w) =>
+    Markup.button.callback(w.name, `workspace:${w.id}`),
+  );
+  const rows: ReturnType<typeof Markup.button.callback>[][] = [];
+  for (let i = 0; i < buttons.length; i += 2) {
+    rows.push(buttons.slice(i, i + 2));
+  }
+  await bot.telegram.sendMessage(
+    chatId,
+    "Wähle deinen Workspace:",
+    Markup.inlineKeyboard(rows),
+  );
+}
+
 // ---------- Helper: show project selection ----------
 async function showProjectSelection(
   chatId: number,
-  pending: PendingTicket,
+  projects: Project[],
 ): Promise<void> {
-  const { data: projects } = await supabase
-    .from("projects")
-    .select("id, name")
-    .eq("workspace_id", workspaceId)
-    .order("name");
-
   if (!projects || projects.length === 0) {
-    await bot.telegram.sendMessage(chatId, "Keine Projekte gefunden.");
+    await bot.telegram.sendMessage(
+      chatId,
+      "Keine Projekte im aktiven Workspace gefunden.",
+    );
     return;
   }
 
-  pendingTickets.set(chatId, pending);
-
-  const buttons = (projects as Project[]).map((p) =>
+  const buttons = projects.map((p) =>
     Markup.button.callback(p.name, `project:${p.id}`),
   );
-
   const rows: ReturnType<typeof Markup.button.callback>[][] = [];
   for (let i = 0; i < buttons.length; i += 2) {
     rows.push(buttons.slice(i, i + 2));
@@ -91,13 +121,33 @@ async function showProjectSelection(
   );
 }
 
+// ---------- Helper: route to workspace or project selection ----------
+async function handlePendingTicket(
+  chatId: number,
+  pending: PendingTicket,
+): Promise<void> {
+  pendingTickets.set(chatId, pending);
+  const state = userStates.get(chatId);
+  if (!state) return;
+
+  if (!state.activeWorkspaceId) {
+    await showWorkspaceSelection(chatId, state.workspaces);
+    return;
+  }
+
+  const workspace = state.workspaces.find(
+    (w) => w.id === state.activeWorkspaceId,
+  );
+  await showProjectSelection(chatId, workspace?.projects ?? []);
+}
+
 // ---------- Text messages ----------
 bot.on("text", async (ctx) => {
   if (ctx.message.text.startsWith("/")) return;
 
   await ctx.reply("Verarbeite Nachricht...");
 
-  await showProjectSelection(ctx.chat.id, {
+  await handlePendingTicket(ctx.chat.id, {
     text: ctx.message.text,
     voice_transcript: null,
     image_descriptions: [],
@@ -115,7 +165,7 @@ bot.on("voice", async (ctx) => {
 
     await ctx.reply(`Transkription:\n\n${transcript}`);
 
-    await showProjectSelection(ctx.chat.id, {
+    await handlePendingTicket(ctx.chat.id, {
       text: null,
       voice_transcript: transcript,
       image_descriptions: [],
@@ -165,7 +215,7 @@ bot.on("photo", async (ctx) => {
       const buffer = await downloadFile(photo.file_id);
       const description = await describeImage(buffer, "image/jpeg");
 
-      await showProjectSelection(ctx.chat.id, {
+      await handlePendingTicket(ctx.chat.id, {
         text: null,
         voice_transcript: null,
         image_descriptions: [description],
@@ -191,7 +241,7 @@ async function processMediaGroup(mediaGroupId: string): Promise<void> {
       group.photos.map((p) => describeImage(p.buffer, p.mimeType)),
     );
 
-    await showProjectSelection(group.chatId, {
+    await handlePendingTicket(group.chatId, {
       text: null,
       voice_transcript: null,
       image_descriptions: descriptions,
@@ -206,14 +256,60 @@ async function processMediaGroup(mediaGroupId: string): Promise<void> {
   }
 }
 
+// ---------- Workspace selection callback ----------
+bot.action(/^workspace:(.+)$/, async (ctx) => {
+  const workspaceId = ctx.match[1];
+  const chatId = ctx.chat!.id;
+  const state = userStates.get(chatId);
+
+  if (!state) {
+    await ctx.answerCbQuery();
+    return;
+  }
+
+  const workspace = state.workspaces.find((w) => w.id === workspaceId);
+  if (!workspace) {
+    await ctx.answerCbQuery("Workspace nicht gefunden.");
+    return;
+  }
+
+  state.activeWorkspaceId = workspaceId;
+  await ctx.answerCbQuery(`Workspace "${workspace.name}" aktiv`);
+  await ctx.editMessageReplyMarkup(undefined);
+
+  const pending = pendingTickets.get(chatId);
+  if (pending) {
+    await showProjectSelection(chatId, workspace.projects);
+  } else {
+    await bot.telegram.sendMessage(
+      chatId,
+      `Workspace "${workspace.name}" aktiv.\n\nSende jetzt eine Nachricht, Sprachnachricht oder Screenshot um ein Ticket zu erstellen.`,
+    );
+  }
+});
+
 // ---------- Project selection callback ----------
 bot.action(/^project:(.+)$/, async (ctx) => {
   const projectId = ctx.match[1];
   const chatId = ctx.chat!.id;
   const pending = pendingTickets.get(chatId);
+  const state = userStates.get(chatId);
 
   if (!pending) {
     await ctx.answerCbQuery("Keine ausstehende Nachricht gefunden.");
+    return;
+  }
+
+  // SECURITY: Validate projectId exists in active workspace
+  const activeWorkspace = state?.workspaces.find(
+    (w) => w.id === state.activeWorkspaceId,
+  );
+  const validProject = activeWorkspace?.projects.find(
+    (p) => p.id === projectId,
+  );
+
+  if (!validProject || !activeWorkspace) {
+    await ctx.answerCbQuery("Projekt nicht gefunden oder nicht berechtigt.");
     return;
   }
 
@@ -222,22 +318,6 @@ bot.action(/^project:(.+)$/, async (ctx) => {
   await ctx.editMessageReplyMarkup(undefined);
 
   try {
-    // SECURITY: Validate projectId exists in workspace
-    const { data: project, error: projectError } = await supabase
-      .from("projects")
-      .select("id")
-      .eq("id", projectId)
-      .eq("workspace_id", workspaceId)
-      .single();
-
-    if (projectError || !project) {
-      await bot.telegram.sendMessage(
-        chatId,
-        "Projekt nicht gefunden oder nicht berechtigt.",
-      );
-      return;
-    }
-
     const ticket = await structureTicket(pending);
 
     const { data, error } = await supabase
@@ -248,7 +328,7 @@ bot.action(/^project:(.+)$/, async (ctx) => {
         priority: ticket.priority,
         tags: ticket.tags,
         status: "backlog",
-        workspace_id: workspaceId,
+        workspace_id: activeWorkspace.id,
         project_id: projectId,
       })
       .select("number, title")

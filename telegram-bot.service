@@ -14,7 +14,8 @@
 #   TELEGRAM_BOT_TOKEN=123456:ABC-DEF...
 #   SUPABASE_URL=https://xxx.supabase.co
 #   SUPABASE_SERVICE_KEY=eyJ...
-#   WORKSPACE_ID=421dffa5-...
+#   BOARD_API_URL=https://app.agentic-dev.xyz
+#   TELEGRAM_BOT_SECRET=your-shared-secret-from-board-settings
 # =============================================================================
 
 [Unit]
