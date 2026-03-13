@@ -39,6 +39,7 @@ export async function updateSession(request: NextRequest) {
     request.nextUrl.pathname.startsWith("/invite") ||
     request.nextUrl.pathname.startsWith("/auth") ||
     request.nextUrl.pathname.startsWith("/api/v1/pipeline") ||
+    request.nextUrl.pathname.startsWith("/api/v1/telegram") ||
     request.nextUrl.pathname.startsWith("/api/tickets") ||
     request.nextUrl.pathname.startsWith("/api/events");
 

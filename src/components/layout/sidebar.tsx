@@ -24,6 +24,7 @@ import {
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import type { Workspace } from "@/lib/types";
+import { TelegramStatusIndicator } from "@/components/shared/telegram-status-indicator";
 
 interface SidebarProps {
   workspace: Workspace;
@@ -104,6 +105,10 @@ export function Sidebar({ workspace, userEmail, workspaces }: SidebarProps) {
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
+        {/* Telegram connection */}
+        <div className="mt-2">
+          <TelegramStatusIndicator />
+        </div>
       </div>
 
       {/* Navigation */}

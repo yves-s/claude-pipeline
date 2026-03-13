@@ -59,6 +59,22 @@ export interface TaskEvent {
   created_at: string;
 }
 
+export interface TelegramConnection {
+  id: string;
+  user_id: string;
+  telegram_user_id: number;
+  telegram_username: string | null;
+  connected_at: string;
+}
+
+export interface TelegramAuthCode {
+  id: string;
+  user_id: string;
+  code: string;
+  expires_at: string;
+  created_at: string;
+}
+
 export interface Ticket {
   id: string;
   workspace_id: string;
