@@ -21,7 +21,9 @@
   "pipeline": {
     "project_id": "",
     "project_name": null,
-    "workspace_id": ""
+    "workspace_id": "",
+    "api_url": "",
+    "api_key": ""
   },
   "conventions": {
     "commit_format": "conventional",
