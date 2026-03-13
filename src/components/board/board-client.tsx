@@ -14,6 +14,7 @@ interface BoardClientProps {
   workspaceSlug: string;
   projects: Project[];
   members: WorkspaceMember[];
+  boardUrl: string;
 }
 
 export function BoardClient({
@@ -23,6 +24,7 @@ export function BoardClient({
   workspaceSlug,
   projects,
   members,
+  boardUrl,
 }: BoardClientProps) {
   return (
     <Board
@@ -32,6 +34,7 @@ export function BoardClient({
       workspaceSlug={workspaceSlug}
       projects={projects}
       members={members}
+      boardUrl={boardUrl}
     />
   );
 }

@@ -1,6 +1,8 @@
 "use client";
 
 import { useState, useMemo, useEffect, useCallback } from "react";
+import { Plus } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import {
   DndContext,
   DragEndEvent,
@@ -19,7 +21,7 @@ import { createClient } from "@/lib/supabase/client";
 import { useRouter, usePathname, useSearchParams } from "next/navigation";
 import { BOARD_COLUMNS, TICKETS_PER_COLUMN_PAGE } from "@/lib/constants";
 import type { TicketStatus, TicketPriority } from "@/lib/constants";
-import type { Ticket, Project, WorkspaceMember } from "@/lib/types";
+import type { Ticket, Project, WorkspaceMember, ApiKey } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { BoardColumn } from "./board-column";
 import { BoardGroupRow, type ProjectGroup } from "./board-group-row";
@@ -31,6 +33,8 @@ import { useAgentActivity } from "@/lib/hooks/use-agent-activity";
 import { BoardToolbar } from "./board-toolbar";
 import { useBoardFilters } from "@/lib/hooks/use-board-filters";
 import { useTicketRealtime } from "@/lib/hooks/use-ticket-realtime";
+import { CreateProjectDialog } from "./create-project-dialog";
+import { ProjectSetupDialog } from "./project-setup-dialog";
 
 const COLUMN_DOT: Record<TicketStatus, string> = {
   backlog: "bg-slate-400",
@@ -119,6 +123,7 @@ interface BoardProps {
   workspaceSlug: string;
   projects: Project[];
   members: WorkspaceMember[];
+  boardUrl: string;
 }
 
 export function Board({
@@ -128,6 +133,7 @@ export function Board({
   workspaceSlug,
   projects,
   members,
+  boardUrl,
 }: BoardProps) {
   const router = useRouter();
   const pathname = usePathname();
@@ -172,6 +178,77 @@ export function Board({
   }>({ open: false, status: "backlog", projectId: null });
 
   const { filters, updateFilters, toggleGroupCollapsed } = useBoardFilters(workspaceSlug);
+
+  // Convert projects prop to local state (so we can add new ones)
+  const [localProjects, setLocalProjects] = useState<Project[]>(projects);
+
+  // Sync localProjects with server-rendered props on navigation
+  useEffect(() => {
+    setLocalProjects(projects);
+  }, [projects]);
+
+  // Dialog state
+  const [createProjectOpen, setCreateProjectOpen] = useState(false);
+  const [setupProject, setSetupProject] = useState<Project | null>(null);
+
+  // API key state
+  const [apiKey, setApiKey] = useState<ApiKey | null>(null);
+  const [plaintextKey, setPlaintextKey] = useState<string | null>(null);
+
+  // Auto-fetch or generate API key when setup dialog opens
+  const ensureApiKey = useCallback(async () => {
+    if (apiKey) return;
+    const supabase = createClient();
+    // Try to fetch existing key
+    const { data: keys } = await supabase
+      .from("api_keys")
+      .select("*")
+      .eq("workspace_id", workspaceId)
+      .is("revoked_at", null)
+      .limit(1);
+
+    if (keys && keys.length > 0) {
+      setApiKey(keys[0]);
+      return;
+    }
+
+    // No key exists -- create one
+    const res = await fetch(`/api/workspace/${workspaceId}/api-keys`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ name: "Pipeline" }),
+    });
+    if (res.ok) {
+      const { data } = await res.json();
+      setApiKey(data.key);
+      setPlaintextKey(data.plaintext);
+    }
+  }, [apiKey, workspaceId]);
+
+  // Handle project creation -> open setup dialog
+  function handleProjectCreated(project: Project) {
+    setLocalProjects((prev) => [...prev, project]);
+    setSetupProject(project);
+    ensureApiKey();
+  }
+
+  // Handle setup icon click on existing project
+  function handleSetupProject(project: Project) {
+    setSetupProject(project);
+    ensureApiKey();
+  }
+
+  // Handle key regeneration
+  async function handleRegenerateKey(): Promise<string | null> {
+    const res = await fetch(`/api/workspace/${workspaceId}/api-keys/regenerate`, {
+      method: "POST",
+    });
+    if (!res.ok) return null;
+    const { data } = await res.json();
+    setApiKey({ ...apiKey!, key_prefix: data.prefix, revoked_at: null });
+    setPlaintextKey(data.api_key);
+    return data.api_key;
+  }
 
   const ticketIds = useMemo(() => initialTickets.map((t) => t.id), [initialTickets]);
 
@@ -304,8 +381,8 @@ export function Board({
   // Build project groups for grouped layout
   const projectGroups = useMemo(() => {
     if (!filters.groupByProject) return [];
-    return buildProjectGroups(filteredTickets, projects);
-  }, [filteredTickets, projects, filters.groupByProject]);
+    return buildProjectGroups(filteredTickets, localProjects);
+  }, [filteredTickets, localProjects, filters.groupByProject]);
 
   // Helper to extract status from droppable id (handles compound ids like "backlog__project-123")
   function getStatusFromDroppableId(id: string): TicketStatus | undefined {
@@ -508,9 +585,25 @@ export function Board({
       <BoardToolbar
         filters={filters}
         onChange={updateFilters}
-        projects={projects}
+        projects={localProjects}
         members={members}
+        onCreateProject={() => setCreateProjectOpen(true)}
+        onSetupProject={handleSetupProject}
       />
+      {/* Empty state -- shown when no projects exist */}
+      {localProjects.length === 0 && (
+        <div className="flex flex-col items-center justify-center py-24 text-center">
+          <h2 className="text-xl font-semibold mb-2">Welcome to your workspace!</h2>
+          <p className="text-muted-foreground mb-6 max-w-md">
+            Projects group your tickets and connect to your codebase.
+          </p>
+          <Button onClick={() => setCreateProjectOpen(true)}>
+            <Plus className="h-4 w-4 mr-2" />
+            Create your first project
+          </Button>
+        </div>
+      )}
+
       <div className="flex-1 overflow-auto">
         <DndContext
           sensors={sensors}
@@ -630,10 +723,29 @@ export function Board({
         }
         workspaceId={workspaceId}
         onCreated={handleTicketAdded}
-        projects={projects}
+        projects={localProjects}
         defaultStatus={addTicketDialog.status}
         defaultProjectId={addTicketDialog.projectId}
       />
+
+      <CreateProjectDialog
+        open={createProjectOpen}
+        onOpenChange={setCreateProjectOpen}
+        workspaceId={workspaceId}
+        onCreated={handleProjectCreated}
+      />
+      {setupProject && (
+        <ProjectSetupDialog
+          open={!!setupProject}
+          onOpenChange={(open) => !open && setSetupProject(null)}
+          project={setupProject}
+          workspaceId={workspaceId}
+          boardUrl={boardUrl}
+          apiKey={apiKey}
+          plaintextKey={plaintextKey}
+          onRegenerateKey={handleRegenerateKey}
+        />
+      )}
     </>
   );
 }

@@ -60,6 +60,8 @@ export default async function BoardPage({
     if (membersResult.data) members.push(...(membersResult.data as WorkspaceMember[]));
   }
 
+  const boardUrl = process.env.NEXT_PUBLIC_APP_URL || "";
+
   return (
     <>
       <BoardHeader workspaceId={workspace?.id ?? ""} />
@@ -70,6 +72,7 @@ export default async function BoardPage({
         workspaceSlug={slug}
         projects={projects}
         members={members}
+        boardUrl={boardUrl}
       />
     </>
   );
