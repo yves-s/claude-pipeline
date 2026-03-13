@@ -9,8 +9,10 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Terminal } from "lucide-react";
+import { Terminal, Pencil, Trash2 } from "lucide-react";
 import { MoveProjectDialog } from "./move-project-dialog";
+import { EditProjectDialog } from "./edit-project-dialog";
+import { DeleteProjectDialog } from "./delete-project-dialog";
 import { ProjectSetupDialog } from "@/components/board/project-setup-dialog";
 import { createClient } from "@/lib/supabase/client";
 import type { Project, ApiKey } from "@/lib/types";
@@ -31,6 +33,8 @@ export function ProjectsSettingsView({
   const [projectsList, setProjectsList] = useState<Project[]>(projects);
   const [moveDialogProject, setMoveDialogProject] = useState<Project | null>(null);
   const [setupProject, setSetupProject] = useState<Project | null>(null);
+  const [editProject, setEditProject] = useState<Project | null>(null);
+  const [deleteProject, setDeleteProject] = useState<Project | null>(null);
   const [apiKey, setApiKey] = useState<ApiKey | null>(null);
   const [plaintextKey, setPlaintextKey] = useState<string | null>(null);
   const [apiKeyError, setApiKeyError] = useState<string | null>(null);
@@ -39,6 +43,19 @@ export function ProjectsSettingsView({
     if (!moveDialogProject) return;
     setProjectsList((prev) => prev.filter((p) => p.id !== moveDialogProject.id));
     setMoveDialogProject(null);
+  }
+
+  function handleUpdated(updated: Project) {
+    setProjectsList((prev) =>
+      prev.map((p) => (p.id === updated.id ? updated : p))
+    );
+    setEditProject(null);
+  }
+
+  function handleDeleted() {
+    if (!deleteProject) return;
+    setProjectsList((prev) => prev.filter((p) => p.id !== deleteProject.id));
+    setDeleteProject(null);
   }
 
   const ensureApiKey = useCallback(async () => {
@@ -133,6 +150,20 @@ export function ProjectsSettingsView({
                   >
                     Move
                   </Button>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setEditProject(project)}
+                  >
+                    <Pencil className="h-3.5 w-3.5" />
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setDeleteProject(project)}
+                  >
+                    <Trash2 className="h-3.5 w-3.5 text-destructive" />
+                  </Button>
                 </li>
               ))}
             </ul>
@@ -164,6 +195,29 @@ export function ProjectsSettingsView({
           apiKeyError={apiKeyError}
           onRetryApiKey={ensureApiKey}
           onRegenerateKey={handleRegenerateKey}
+        />
+      )}
+
+      {editProject && (
+        <EditProjectDialog
+          open={editProject !== null}
+          onOpenChange={(open) => {
+            if (!open) setEditProject(null);
+          }}
+          project={editProject}
+          onUpdated={handleUpdated}
+        />
+      )}
+
+      {deleteProject && (
+        <DeleteProjectDialog
+          open={deleteProject !== null}
+          onOpenChange={(open) => {
+            if (!open) setDeleteProject(null);
+          }}
+          project={deleteProject}
+          workspaceId={workspaceId}
+          onDeleted={handleDeleted}
         />
       )}
     </>
