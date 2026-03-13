@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Copy, Check, RefreshCw, AlertTriangle } from "lucide-react";
 import {
   Dialog,
@@ -35,6 +35,8 @@ interface ProjectSetupDialogProps {
   boardUrl: string;
   apiKey: ApiKey | null;
   plaintextKey: string | null;
+  apiKeyError: string | null;
+  onRetryApiKey: () => Promise<void>;
   onRegenerateKey: () => Promise<string | null>;
 }
 
@@ -46,6 +48,8 @@ export function ProjectSetupDialog({
   boardUrl,
   apiKey,
   plaintextKey,
+  apiKeyError,
+  onRetryApiKey,
   onRegenerateKey,
 }: ProjectSetupDialogProps) {
   const [copied, setCopied] = useState<"cli" | "json" | null>(null);
@@ -53,6 +57,11 @@ export function ProjectSetupDialog({
   const [regenerating, setRegenerating] = useState(false);
   const [currentPlaintextKey, setCurrentPlaintextKey] = useState(plaintextKey);
   const [manualOpen, setManualOpen] = useState(false);
+
+  // Sync with prop when parent provides a new plaintext key (e.g. after ensureApiKey)
+  useEffect(() => {
+    if (plaintextKey) setCurrentPlaintextKey(plaintextKey);
+  }, [plaintextKey]);
 
   const displayKey = currentPlaintextKey
     ? currentPlaintextKey
@@ -102,6 +111,17 @@ export function ProjectSetupDialog({
           </DialogHeader>
 
           <div className="space-y-4">
+            {/* API Key Error */}
+            {apiKeyError && (
+              <div className="rounded-lg border border-destructive/50 bg-destructive/10 p-4 flex items-center justify-between gap-3">
+                <p className="text-sm text-destructive">{apiKeyError}</p>
+                <Button variant="outline" size="sm" onClick={onRetryApiKey}>
+                  <RefreshCw className="h-3.5 w-3.5 mr-1.5" />
+                  Retry
+                </Button>
+              </div>
+            )}
+
             {/* Option 1: CLI Command */}
             <div className="rounded-lg border bg-muted/50 p-4 space-y-2">
               <p className="text-sm font-medium">

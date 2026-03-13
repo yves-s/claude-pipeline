@@ -194,48 +194,56 @@ export function Board({
   // API key state
   const [apiKey, setApiKey] = useState<ApiKey | null>(null);
   const [plaintextKey, setPlaintextKey] = useState<string | null>(null);
+  const [apiKeyError, setApiKeyError] = useState<string | null>(null);
 
   // Auto-fetch or generate API key when setup dialog opens
   const ensureApiKey = useCallback(async () => {
     if (apiKey) return;
-    const supabase = createClient();
-    // Try to fetch existing key
-    const { data: keys } = await supabase
-      .from("api_keys")
-      .select("*")
-      .eq("workspace_id", workspaceId)
-      .is("revoked_at", null)
-      .limit(1);
+    setApiKeyError(null);
+    try {
+      const supabase = createClient();
+      // Try to fetch existing key
+      const { data: keys } = await supabase
+        .from("api_keys")
+        .select("*")
+        .eq("workspace_id", workspaceId)
+        .is("revoked_at", null)
+        .limit(1);
 
-    if (keys && keys.length > 0) {
-      setApiKey(keys[0]);
-      return;
-    }
+      if (keys && keys.length > 0) {
+        setApiKey(keys[0]);
+        return;
+      }
 
-    // No key exists -- create one
-    const res = await fetch(`/api/workspace/${workspaceId}/api-keys`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ name: "Pipeline" }),
-    });
-    if (res.ok) {
-      const { data } = await res.json();
-      setApiKey(data.key);
-      setPlaintextKey(data.plaintext);
+      // No key exists -- create one
+      const res = await fetch(`/api/workspace/${workspaceId}/api-keys`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name: "Pipeline" }),
+      });
+      if (res.ok) {
+        const { data } = await res.json();
+        setApiKey(data.key);
+        setPlaintextKey(data.plaintext);
+      } else {
+        setApiKeyError("Failed to generate API key. Please try again.");
+      }
+    } catch {
+      setApiKeyError("Network error generating API key. Please try again.");
     }
   }, [apiKey, workspaceId]);
 
   // Handle project creation -> open setup dialog
-  function handleProjectCreated(project: Project) {
+  async function handleProjectCreated(project: Project) {
     setLocalProjects((prev) => [...prev, project]);
     setSetupProject(project);
-    ensureApiKey();
+    await ensureApiKey();
   }
 
   // Handle setup icon click on existing project
-  function handleSetupProject(project: Project) {
+  async function handleSetupProject(project: Project) {
     setSetupProject(project);
-    ensureApiKey();
+    await ensureApiKey();
   }
 
   // Handle key regeneration
@@ -743,6 +751,8 @@ export function Board({
           boardUrl={boardUrl}
           apiKey={apiKey}
           plaintextKey={plaintextKey}
+          apiKeyError={apiKeyError}
+          onRetryApiKey={ensureApiKey}
           onRegenerateKey={handleRegenerateKey}
         />
       )}
