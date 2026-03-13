@@ -36,16 +36,18 @@ It works in two modes:
 ## Quick Start
 
 ```bash
-# 1. Clone the framework (put it wherever you want)
-git clone https://github.com/yves-s/agentic-dev-pipeline.git /path/to/agentic-dev-pipeline
+# 1. Clone the framework
+git clone https://github.com/yves-s/agentic-dev-pipeline.git ~/.agentic-dev-pipeline
 
-# 2. Go to your project and run setup from there
-cd /path/to/your-project                    # ← your existing project
-/path/to/agentic-dev-pipeline/setup.sh      # ← runs the framework installer
+# 2. Go to your project and run setup
+cd /path/to/your-project
+~/.agentic-dev-pipeline/setup.sh
 
-# 3. Open Claude Code and auto-detect your stack
+# 3. Connect to the Agentic Dev Board
+#    Create a workspace + project at https://app.agentic-dev.xyz
+#    Copy the connect command from the project setup dialog, then run it in Claude Code:
 claude
-> /setup-pipeline
+> /setup-pipeline --board https://app.agentic-dev.xyz --key adp_... --project <uuid>
 
 # 4. Write your first ticket
 > /ticket Add dark mode toggle to the settings page
@@ -133,7 +135,7 @@ Add your own project-specific skills in `.claude/skills/`. They are never touche
 ## Workflow
 
 ```
-/ticket ──── writes ticket to Supabase ──────────────┐
+/ticket ──── writes ticket to Board API ─────────────┐
                                                       │
 /develop ── picks ticket ── implements ── /ship ──┐   │
                                                   │   │
@@ -267,7 +269,9 @@ Central config read by all agents and commands. Auto-populated by `/setup-pipeli
   "pipeline": {
     "project_id": "uuid",
     "project_name": "My Project",
-    "workspace_id": "uuid"
+    "workspace_id": "uuid",
+    "api_url": "https://app.agentic-dev.xyz",
+    "api_key": "adp_..."
   },
   "conventions": {
     "commit_format": "conventional",
@@ -388,7 +392,20 @@ See **[vps/README.md](vps/README.md)** for the complete deployment guide.
 
 ## Dev Board Integration
 
-Real-time event streaming to the **Agentic Dev Board** via two modes:
+The **[Agentic Dev Board](https://app.agentic-dev.xyz)** is the visual companion for the pipeline. It provides a Kanban board, activity timelines, and project setup.
+
+### Connecting a Project
+
+1. Create a workspace and project on the Board
+2. The Board generates an API key and shows a connect command
+3. Run the command in Claude Code: `/setup-pipeline --board <url> --key <key> --project <uuid>`
+4. This writes `api_url`, `api_key`, and `project_id` to `project.json`
+
+Commands (`/ticket`, `/develop`, `/ship`, `/merge`) auto-detect the Board API config and use it for ticket operations and status updates. If no Board API is configured, they fall back to legacy Supabase MCP.
+
+### Event Streaming
+
+Real-time agent activity streaming via two modes:
 
 1. **SDK Hooks** (Pipeline/VPS) — `SubagentStart`, `SubagentStop`, `PostToolUse` events via Agent SDK callbacks
 2. **Shell Hooks** (Interactive) — `SessionStart`, `SubagentStart/Stop`, `SessionEnd` via `settings.json` hook config
