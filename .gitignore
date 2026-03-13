@@ -5,3 +5,6 @@ node_modules/
 *.log
 .DS_Store
 dist/
+
+# Pipeline config (contains API keys — do not commit)
+project.json
