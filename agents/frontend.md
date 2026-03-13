@@ -24,6 +24,19 @@ Lies `project.json` für Pfade (`paths.web`, `paths.mobile`, `paths.shared`).
 ### 1. Aufgabe verstehen
 Lies die Instruktionen im Prompt des Orchestrators. Dort stehen die exakten Dateien und Änderungen.
 
+### 1b. Spec-Review — VOR dem Coden
+
+Challenge die Spec. Kein gutes UI entsteht durch blindes Implementieren.
+
+Frage dich bei jeder UI-Aufgabe:
+- **Würde Linear, Vercel oder Notion das so bauen?** Wenn nein — warum nicht, und was wäre besser?
+- **Mehr als 2 inline-Aktionen pro Zeile/Eintrag?** → Overflow-Menü (`⋯`), Hover-Actions oder kontextuelles Menü.
+- **Primary Button in einem Settings- oder Verwaltungs-Kontext?** → `outline` oder `ghost`. Primary nur bei echten Conversion-Flows.
+- **Werden alle Aktionen permanent angezeigt, die nur selten gebraucht werden?** → Auf Hover reduzieren oder in Menü auslagern.
+- **Ist die Information Architecture sinnvoll?** Oder beschreibt das Ticket eine Lösung, die eigentlich ein anderes Problem hat?
+
+Wenn du Verbesserungspotential siehst: Kündige es kurz an ("Spec-Anpassung: 4 inline-Buttons → Overflow-Menü, weil...") und implementiere die bessere Lösung. Nicht die schlechtere, die im Ticket stand.
+
 ### 2. Design-Modus bestimmen — VOR dem Coden
 
 **Greenfield** (neue Seite/Feature, kein bestehendes Design System):
