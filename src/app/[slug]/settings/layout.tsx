@@ -9,6 +9,7 @@ interface SettingsLayoutProps {
 async function SettingsNav({ slug }: { slug: string }) {
   const navItems = [
     { label: "General", href: `/${slug}/settings` },
+    { label: "Projects", href: `/${slug}/settings/projects` },
     { label: "Members", href: `/${slug}/settings/members` },
     { label: "API Keys", href: `/${slug}/settings/api-keys` },
   ];

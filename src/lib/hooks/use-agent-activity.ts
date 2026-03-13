@@ -4,7 +4,9 @@ import { useEffect, useState, useCallback, useRef, useMemo } from "react";
 import { createClient } from "@/lib/supabase/client";
 import type { TaskEvent } from "@/lib/types";
 
-const ACTIVITY_WINDOW_MS = 60_000; // 60 seconds
+const ACTIVITY_WINDOW_MS = 60_000; // 60 seconds for completed/failed events
+const RUNNING_TTL_MS = 2 * 60 * 60 * 1000; // 2 hours max for running agents (crash safety)
+const INITIAL_LOAD_WINDOW_MS = 2 * 60 * 60 * 1000; // load last 2h on mount
 
 interface AgentActivity {
   agent_type: string;
@@ -51,10 +53,10 @@ export function useAgentActivity(workspaceId: string, ticketIds?: string[]) {
     (ticketId: string) => {
       const now = Date.now();
       for (const [key, activity] of activityMap) {
-        if (
-          key.startsWith(`${ticketId}::`) &&
-          now - new Date(activity.created_at).getTime() < ACTIVITY_WINDOW_MS
-        ) {
+        if (!key.startsWith(`${ticketId}::`)) continue;
+        const status = deriveStatus(activity.event_type);
+        const age = now - new Date(activity.created_at).getTime();
+        if (status === "running" || status === "log" || age < ACTIVITY_WINDOW_MS) {
           return true;
         }
       }
@@ -68,10 +70,10 @@ export function useAgentActivity(workspaceId: string, ticketIds?: string[]) {
       const now = Date.now();
       let latest: (AgentActivity & { ticket_id: string }) | null = null;
       for (const [key, activity] of activityMap) {
-        if (
-          key.startsWith(`${ticketId}::`) &&
-          now - new Date(activity.created_at).getTime() < ACTIVITY_WINDOW_MS
-        ) {
+        if (!key.startsWith(`${ticketId}::`)) continue;
+        const status = deriveStatus(activity.event_type);
+        const age = now - new Date(activity.created_at).getTime();
+        if (status === "running" || status === "log" || age < ACTIVITY_WINDOW_MS) {
           if (!latest || activity.created_at > latest.created_at) {
             latest = activity;
           }
@@ -86,14 +88,17 @@ export function useAgentActivity(workspaceId: string, ticketIds?: string[]) {
     const now = Date.now();
     const result: ActiveAgent[] = [];
     for (const [, activity] of activityMap) {
-      const isLog = activity.event_type === "log";
-      if (isLog || now - new Date(activity.created_at).getTime() < ACTIVITY_WINDOW_MS) {
+      const status = deriveStatus(activity.event_type);
+      const age = now - new Date(activity.created_at).getTime();
+      // Running agents: show until replaced by completed/failed (or 2h crash safety TTL)
+      // Completed/failed/tool_use: show for 60s
+      if (status === "log" || status === "running" || age < ACTIVITY_WINDOW_MS) {
         result.push({
           ticket_id: activity.ticket_id,
           agent_type: activity.agent_type,
           event_type: activity.event_type,
           created_at: activity.created_at,
-          status: deriveStatus(activity.event_type),
+          status,
           metadata: activity.metadata,
         });
       }
@@ -105,7 +110,7 @@ export function useAgentActivity(workspaceId: string, ticketIds?: string[]) {
   useEffect(() => {
     if (!ticketIds?.length) return;
     const supabase = createClient();
-    const cutoff = new Date(Date.now() - ACTIVITY_WINDOW_MS).toISOString();
+    const cutoff = new Date(Date.now() - INITIAL_LOAD_WINDOW_MS).toISOString();
     supabase
       .from("task_events")
       .select("*")
@@ -175,13 +180,14 @@ export function useAgentActivity(workspaceId: string, ticketIds?: string[]) {
         const next = new Map(prev);
         for (const [key, activity] of next) {
           if (activity.event_type === "log") continue;
-          if (
-            now - new Date(activity.created_at).getTime() >=
-            ACTIVITY_WINDOW_MS
-          ) {
-            next.delete(key);
-            changed = true;
-          }
+          const status = deriveStatus(activity.event_type);
+          const age = now - new Date(activity.created_at).getTime();
+          // Running agents: keep until replaced by completed/failed, max 2h (crash safety)
+          if (status === "running" && age < RUNNING_TTL_MS) continue;
+          // Completed/failed/tool_use: expire after 60s
+          if (status !== "running" && age < ACTIVITY_WINDOW_MS) continue;
+          next.delete(key);
+          changed = true;
         }
         return changed ? next : prev;
       });
