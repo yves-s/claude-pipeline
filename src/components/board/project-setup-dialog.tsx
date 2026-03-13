@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Copy, Check, RefreshCw, AlertTriangle } from "lucide-react";
+import { Copy, Check, RefreshCw, AlertTriangle, ExternalLink } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -40,6 +40,12 @@ interface ProjectSetupDialogProps {
   onRegenerateKey: () => Promise<string | null>;
 }
 
+type CopiedTarget = "cli" | "json" | "install" | null;
+
+const INSTALL_COMMAND = `git clone https://github.com/yves-s/agentic-dev-pipeline.git ~/.agentic-dev-pipeline
+cd /path/to/your/project
+~/.agentic-dev-pipeline/setup.sh`;
+
 export function ProjectSetupDialog({
   open,
   onOpenChange,
@@ -52,11 +58,12 @@ export function ProjectSetupDialog({
   onRetryApiKey,
   onRegenerateKey,
 }: ProjectSetupDialogProps) {
-  const [copied, setCopied] = useState<"cli" | "json" | null>(null);
+  const [copied, setCopied] = useState<CopiedTarget>(null);
   const [showRegenConfirm, setShowRegenConfirm] = useState(false);
   const [regenerating, setRegenerating] = useState(false);
   const [currentPlaintextKey, setCurrentPlaintextKey] = useState(plaintextKey);
   const [manualOpen, setManualOpen] = useState(false);
+  const [firstTimeOpen, setFirstTimeOpen] = useState(false);
 
   // Sync with prop when parent provides a new plaintext key (e.g. after ensureApiKey)
   useEffect(() => {
@@ -88,10 +95,27 @@ export function ProjectSetupDialog({
     2
   );
 
-  async function copyToClipboard(text: string, type: "cli" | "json") {
+  async function copyToClipboard(text: string, type: CopiedTarget) {
     await navigator.clipboard.writeText(text);
     setCopied(type);
     setTimeout(() => setCopied(null), 2000);
+  }
+
+  function CopyButton({ target, text }: { target: CopiedTarget; text: string }) {
+    return (
+      <Button
+        variant="ghost"
+        size="icon"
+        className="absolute top-1 right-1 h-7 w-7"
+        onClick={() => copyToClipboard(text, target)}
+      >
+        {copied === target ? (
+          <Check className="h-3.5 w-3.5" />
+        ) : (
+          <Copy className="h-3.5 w-3.5" />
+        )}
+      </Button>
+    );
   }
 
   async function handleRegenerate() {
@@ -105,7 +129,7 @@ export function ProjectSetupDialog({
   return (
     <>
       <Dialog open={open} onOpenChange={onOpenChange}>
-        <DialogContent className="sm:max-w-lg">
+        <DialogContent className="sm:max-w-lg max-h-[85vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Connect &ldquo;{project.name}&rdquo;</DialogTitle>
           </DialogHeader>
@@ -122,31 +146,70 @@ export function ProjectSetupDialog({
               </div>
             )}
 
-            {/* Option 1: CLI Command */}
+            {/* First time setup (collapsible) */}
+            <Collapsible open={firstTimeOpen} onOpenChange={setFirstTimeOpen}>
+              <CollapsibleTrigger className="text-sm font-medium text-primary hover:underline flex items-center gap-1">
+                {firstTimeOpen ? "\u25BE" : "\u25B8"} First time? Install the pipeline first
+              </CollapsibleTrigger>
+              <CollapsibleContent className="mt-3 space-y-3">
+                <div className="rounded-lg border bg-muted/30 p-4 space-y-3">
+                  <div className="space-y-1">
+                    <p className="text-sm font-medium">1. Prerequisites</p>
+                    <p className="text-xs text-muted-foreground">
+                      You need{" "}
+                      <a
+                        href="https://claude.com/claude-code"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-primary hover:underline inline-flex items-center gap-0.5"
+                      >
+                        Claude Code
+                        <ExternalLink className="h-3 w-3" />
+                      </a>{" "}
+                      installed and running.
+                    </p>
+                  </div>
+                  <div className="space-y-1">
+                    <p className="text-sm font-medium">2. Install pipeline in your project</p>
+                    <div className="relative">
+                      <pre className="text-xs bg-background rounded p-3 overflow-x-auto">
+                        {INSTALL_COMMAND}
+                      </pre>
+                      <CopyButton target="install" text={INSTALL_COMMAND} />
+                    </div>
+                    <p className="text-xs text-muted-foreground">
+                      <a
+                        href="https://github.com/yves-s/agentic-dev-pipeline"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-primary hover:underline inline-flex items-center gap-0.5"
+                      >
+                        GitHub Repository
+                        <ExternalLink className="h-3 w-3" />
+                      </a>
+                    </p>
+                  </div>
+                  <div className="space-y-1">
+                    <p className="text-sm font-medium">3. Then run the connect command below</p>
+                  </div>
+                </div>
+              </CollapsibleContent>
+            </Collapsible>
+
+            {/* Connect command (CLI) */}
             <div className="rounded-lg border bg-muted/50 p-4 space-y-2">
               <p className="text-sm font-medium">
-                Run this in your project terminal:
+                Run this in your project terminal (inside Claude Code):
               </p>
               <div className="relative">
                 <pre className="text-xs bg-background rounded p-3 overflow-x-auto">
                   {cliCommand}
                 </pre>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="absolute top-1 right-1 h-7 w-7"
-                  onClick={() => copyToClipboard(cliCommand, "cli")}
-                >
-                  {copied === "cli" ? (
-                    <Check className="h-3.5 w-3.5" />
-                  ) : (
-                    <Copy className="h-3.5 w-3.5" />
-                  )}
-                </Button>
+                <CopyButton target="cli" text={cliCommand} />
               </div>
             </div>
 
-            {/* Option 2: Manual JSON (collapsible) */}
+            {/* Manual JSON (collapsible) */}
             <Collapsible open={manualOpen} onOpenChange={setManualOpen}>
               <CollapsibleTrigger className="text-sm text-muted-foreground hover:text-foreground flex items-center gap-1">
                 {manualOpen ? "\u25BE" : "\u25B8"} Manual: add to project.json
@@ -156,18 +219,7 @@ export function ProjectSetupDialog({
                   <pre className="text-xs bg-muted rounded p-3 overflow-x-auto">
                     {jsonConfig}
                   </pre>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="absolute top-1 right-1 h-7 w-7"
-                    onClick={() => copyToClipboard(jsonConfig, "json")}
-                  >
-                    {copied === "json" ? (
-                      <Check className="h-3.5 w-3.5" />
-                    ) : (
-                      <Copy className="h-3.5 w-3.5" />
-                    )}
-                  </Button>
+                  <CopyButton target="json" text={jsonConfig} />
                 </div>
               </CollapsibleContent>
             </Collapsible>

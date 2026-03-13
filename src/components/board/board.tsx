@@ -598,17 +598,19 @@ export function Board({
         onCreateProject={() => setCreateProjectOpen(true)}
         onSetupProject={handleSetupProject}
       />
-      {/* Empty state -- shown when no projects exist */}
+      {/* Empty state overlay -- shown when no projects exist */}
       {localProjects.length === 0 && (
-        <div className="flex flex-col items-center justify-center py-24 text-center">
-          <h2 className="text-xl font-semibold mb-2">Welcome to your workspace!</h2>
-          <p className="text-muted-foreground mb-6 max-w-md">
-            Projects group your tickets and connect to your codebase.
-          </p>
-          <Button onClick={() => setCreateProjectOpen(true)}>
-            <Plus className="h-4 w-4 mr-2" />
-            Create your first project
-          </Button>
+        <div className="absolute inset-0 z-30 flex items-center justify-center bg-background/80 backdrop-blur-sm">
+          <div className="rounded-xl border bg-card p-8 shadow-lg text-center max-w-md">
+            <h2 className="text-xl font-semibold mb-2">Welcome to your workspace!</h2>
+            <p className="text-muted-foreground mb-6">
+              Projects group your tickets and connect to your codebase.
+            </p>
+            <Button onClick={() => setCreateProjectOpen(true)}>
+              <Plus className="h-4 w-4 mr-2" />
+              Create your first project
+            </Button>
+          </div>
         </div>
       )}
 
