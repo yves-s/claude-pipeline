@@ -1,6 +1,6 @@
 "use client";
 
-import { X, SlidersHorizontal, ArrowUpDown, Layers, Search, Plus } from "lucide-react";
+import { X, SlidersHorizontal, ArrowUpDown, Layers, Search, Plus, Terminal, Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useRef, useEffect } from "react";
@@ -9,6 +9,7 @@ import {
   DropdownMenuTrigger,
   DropdownMenuContent,
   DropdownMenuCheckboxItem,
+  DropdownMenuItem,
   DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuRadioGroup,
@@ -238,20 +239,46 @@ export function BoardToolbar({
               <>
                 <DropdownMenuSeparator />
                 <DropdownMenuLabel>Project</DropdownMenuLabel>
-                <DropdownMenuCheckboxItem
-                  checked={filters.projectIds.includes("none")}
-                  onCheckedChange={() => toggleProject("none")}
+                <DropdownMenuItem
+                  className="flex items-center gap-2"
+                  onSelect={(e) => e.preventDefault()}
                 >
-                  No project
-                </DropdownMenuCheckboxItem>
-                {projects.map((p) => (
-                  <DropdownMenuCheckboxItem
-                    key={p.id}
-                    checked={filters.projectIds.includes(p.id)}
-                    onCheckedChange={() => toggleProject(p.id)}
+                  <button
+                    className="flex items-center gap-2 flex-1"
+                    onClick={() => toggleProject("none")}
                   >
-                    {p.name}
-                  </DropdownMenuCheckboxItem>
+                    <div className="h-4 w-4 border rounded flex items-center justify-center">
+                      {filters.projectIds.includes("none") && <Check className="h-3 w-3" />}
+                    </div>
+                    <span>No project</span>
+                  </button>
+                </DropdownMenuItem>
+                {projects.map((p) => (
+                  <DropdownMenuItem
+                    key={p.id}
+                    className="flex items-center gap-2"
+                    onSelect={(e) => e.preventDefault()}
+                  >
+                    <button
+                      className="flex items-center gap-2 flex-1"
+                      onClick={() => toggleProject(p.id)}
+                    >
+                      <div className="h-4 w-4 border rounded flex items-center justify-center">
+                        {filters.projectIds.includes(p.id) && <Check className="h-3 w-3" />}
+                      </div>
+                      <span>{p.name}</span>
+                    </button>
+                    <button
+                      className="p-1 hover:bg-accent rounded"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onSetupProject?.(p);
+                      }}
+                      title="Setup instructions"
+                    >
+                      <Terminal className="h-3.5 w-3.5 text-muted-foreground" />
+                    </button>
+                  </DropdownMenuItem>
                 ))}
               </>
             )}
