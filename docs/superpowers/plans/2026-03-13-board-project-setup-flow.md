@@ -800,7 +800,8 @@ git commit -m "feat: add create project button to board toolbar"
 **Repo:** agentic-dev-board
 **Files:**
 - Modify: `src/components/board/board.tsx` (the client component where all board state lives)
-- Modify: `src/app/[slug]/board/page.tsx` (pass `boardUrl` prop)
+- Modify: `src/components/board/board-client.tsx` (add `boardUrl` to `BoardClientProps` interface and forward to `Board`)
+- Modify: `src/app/[slug]/board/page.tsx` (pass `boardUrl` prop to `BoardClient`)
 - Reference: `src/components/board/create-project-dialog.tsx`
 - Reference: `src/components/board/project-setup-dialog.tsx`
 
@@ -811,10 +812,17 @@ git commit -m "feat: add create project button to board toolbar"
 In `src/app/[slug]/board/page.tsx`, pass the board URL to the client component:
 
 ```tsx
-// Add to the server component's return, alongside existing props
+// In src/app/[slug]/board/page.tsx (server component):
 const boardUrl = process.env.NEXT_PUBLIC_APP_URL || "";
 // Pass to BoardClient: <BoardClient ... boardUrl={boardUrl} />
 ```
+
+Also update `src/components/board/board-client.tsx`:
+- Add `boardUrl: string` to the `BoardClientProps` interface
+- Forward it to the dynamically imported `Board` component: `<Board ... boardUrl={boardUrl} />`
+
+And update `src/components/board/board.tsx`:
+- Add `boardUrl: string` to the `BoardProps` interface
 
 - [ ] **Step 2: Add dialog state and API key lifecycle to Board component**
 
@@ -1010,6 +1018,8 @@ Replace the existing project filter items (the `projects.map(...)` block) with:
 ```
 
 `onSetupProject` was already added to props in Task 7.
+
+Also update the "No project" checkbox item (currently a `DropdownMenuCheckboxItem`) to use the same `DropdownMenuItem` + manual checkbox layout for visual consistency. The "No project" item does not need a Terminal icon.
 
 - [ ] **Step 2: Commit**
 
@@ -1217,7 +1227,10 @@ curl -s -X PATCH -H "X-Pipeline-Key: {pipeline.api_key}" \
   "{pipeline.api_url}/api/tickets/{number}"
 ```
 
-Same backward compatibility check as Task 13: if `pipeline.api_url` is empty, fall back to `execute_sql`.
+**Three-way backward compatibility check** (same for all commands):
+1. If `pipeline.api_url` AND `pipeline.api_key` are set → use Board API
+2. Else if `pipeline.project_id` is set (legacy format) → use `execute_sql` via Supabase MCP, log warning to re-run `/setup-pipeline`
+3. Else → skip pipeline status updates entirely (standalone mode)
 
 - [ ] **Step 2: Commit**
 
@@ -1245,7 +1258,12 @@ curl -s -X PATCH -H "X-Pipeline-Key: {pipeline.api_key}" \
 ```
 Note: include `summary` so the Board shows a completion summary for the ticket.
 
-Same backward compatibility check as Task 13. Also fix the existing inconsistency: `/merge` currently reads `supabase.project_id` instead of `pipeline.project_id` for its config check — normalize to check `pipeline.api_url`.
+**Three-way backward compatibility check** (same as Tasks 13-14):
+1. If `pipeline.api_url` AND `pipeline.api_key` are set → use Board API
+2. Else if `pipeline.project_id` is set (legacy format) → use `execute_sql`, log warning
+3. Else → skip pipeline status updates
+
+Also fix the existing inconsistency: `/merge` currently reads `supabase.project_id` instead of `pipeline.project_id` for its config check — normalize to check `pipeline.api_url`.
 
 - [ ] **Step 2: Commit**
 
