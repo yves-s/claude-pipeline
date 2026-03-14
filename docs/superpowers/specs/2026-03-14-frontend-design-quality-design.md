@@ -39,7 +39,8 @@ Kombination aus:
 1b. Spec-Review — Challenge die Spec (unverändert)
 2. Design-Modus bestimmen — Greenfield vs. Bestehend (unverändert)
 3. NEU → Design-Thinking: Studieren, Entscheiden, Begründen
-4. Implementieren
+4. Implementieren (bisher Schritt 3)
+5. Shared Logic (bisher Schritt 4)
 ```
 
 ### Schritt 3 im Detail
@@ -60,7 +61,7 @@ Beispiel-Output:
 
 ### Design-Prinzipien (neu, direkt im Frontend-Agent)
 
-Fünf Prinzipien, die erklären *warum* etwas gut aussieht:
+Die bestehende Sektion "Design-Prinzipien" in `frontend.md` (Mobile-first, Touch Targets, Transitions, States, Tokens) wird umbenannt in **"Implementierungs-Standards"**, da es sich um technische Regeln handelt. Die neue Sektion "Design-Prinzipien" enthält die folgenden fünf Prinzipien, die erklären *warum* etwas gut aussieht:
 
 **1. Visuelle Hierarchie ist die halbe Arbeit**
 Jede Seite hat genau eine Sache, die der User zuerst sehen soll. Wenn alles gleich gewichtet ist, sieht alles gleich unwichtig aus. Developer-UI-Fehler: Alles hat die gleiche Schriftgröße, gleiche Farbe, gleichen Abstand.
@@ -83,7 +84,19 @@ Wenn du unsicher bist: Wie würde das in der besten App aussehen, die du kennst?
 
 ### Erweiterung des Frontend-Agent-Prompts
 
-Der Orchestrator gibt dem Frontend-Agent bei UI-Tickets einen `## Design-Kontext` Block mit:
+Der `## Design-Kontext` Block wird **nur beim Frontend-Agent** eingefügt, nach dem `## Aufgabe`-Abschnitt und vor den `## Datei`-Abschnitten. Er wird bei jedem Frontend-Agent-Spawn mitgegeben:
+
+```
+## Aufgabe
+{1-2 Sätze was zu tun ist}
+
+## Design-Kontext          ← NEU, nur für Frontend-Agent
+{Kontext, Referenz, Komplexität}
+
+## Datei 1: ...
+```
+
+Beispiel:
 
 ```markdown
 ## Design-Kontext
@@ -123,6 +136,6 @@ Er gibt dem Frontend-Agent nur **Koordinaten** — der Agent trifft die Design-E
 
 ## Risiken
 
-- **Token-Overhead:** Der Design-Thinking-Schritt erfordert 2-3 extra File-Reads. Bei einem Sonnet-Agent ist das minimal (~500 Tokens extra).
+- **Token-Overhead:** Der Design-Thinking-Schritt erfordert 2-3 extra File-Reads (~2000-5000 Input-Tokens). Bei einem Sonnet-Agent ist das vertretbar.
 - **Qualität der Selbst-Reflexion:** Der Agent könnte den Design-Thinking-Schritt oberflächlich abhandeln. Mitigation: Die Prinzipien sind konkret genug ("Developer-UI-Fehler: ..."), um generische Begründungen zu verhindern.
 - **Orchestrator-Kontext:** Der Orchestrator könnte falsche Referenz-Seiten angeben. Mitigation: Der Frontend-Agent validiert im Design-Thinking-Schritt selbst und kann die Referenz überschreiben.
