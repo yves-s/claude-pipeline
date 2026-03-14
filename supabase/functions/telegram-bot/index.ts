@@ -541,10 +541,37 @@ Deno.serve(async (req: Request) => {
 
   if (!telegramUserId) return new Response("ok");
 
+  // Plain 6-char hex code or /start {code} — verify connection BEFORE auth check
+  const rawText = msg.text?.trim() ?? "";
+  const maybeCode = rawText.startsWith("/start ") ? rawText.slice("/start ".length).trim() : rawText;
+  if (/^[0-9A-Fa-f]{6}$/.test(maybeCode)) {
+    const verifyRes = await fetch(`${BOARD_API_URL}/api/v1/telegram/verify`, {
+      method: "POST",
+      headers: { "Authorization": `Bearer ${TELEGRAM_BOT_SECRET}`, "Content-Type": "application/json" },
+      body: JSON.stringify({ code: maybeCode.toUpperCase(), telegram_user_id: telegramUserId, telegram_username: msg.from?.username ?? null }),
+    });
+    if (verifyRes.ok) {
+      await sendMessage(chatId, "✅ Verbunden! Sende eine Nachricht, Sprachnachricht oder Screenshot, um ein Ticket zu erstellen.");
+    } else if (verifyRes.status === 409) {
+      await sendMessage(chatId, "⚠️ Dieser Telegram-Account ist bereits verbunden.");
+    } else {
+      await sendMessage(chatId, "❌ Code ungültig oder abgelaufen. Generiere einen neuen Code im Board.");
+    }
+    return new Response("ok");
+  }
+
   // Auth check
   const workspaces = await getUserWorkspaces(telegramUserId);
   if (!workspaces || workspaces.length === 0) {
-    await sendMessage(chatId, "Du bist nicht mit dem Board verbunden. Verbinde deinen Telegram-Account über das Board.");
+    await sendMessage(
+      chatId,
+      "👋 Willkommen! Verbinde zuerst deinen Telegram-Account:\n\n" +
+      `1. Öffne <a href="${BOARD_API_URL}">app.agentic-dev.xyz</a>\n` +
+      "2. Klicke in der Sidebar auf das Telegram-Symbol\n" +
+      `3. Klicke auf <b>"Code generieren"</b>\n` +
+      "4. Schick mir den 6-stelligen Code\n\n" +
+      "Beispiel: <code>7BC334</code>",
+    );
     return new Response("ok");
   }
 
