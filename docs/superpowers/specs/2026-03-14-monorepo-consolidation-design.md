@@ -88,6 +88,8 @@ Root `package.json`:
 }
 ```
 
+**Note:** `pipeline/package.json` must be renamed from `"name": "agentic-dev-pipeline"` to `"name": "agentic-dev-pipeline-sdk"` to avoid a name collision with the root package.
+
 One `npm install` at root installs all dependencies. Shared deps (e.g., `@supabase/supabase-js`, `tsx`) are hoisted to root `node_modules/`.
 
 ### What changes, what doesn't
@@ -118,15 +120,22 @@ All commits preserved, `git blame` works.
 
 ### Migration Steps
 
-1. **Add Board:** `git subtree add --prefix=apps/board` from board remote
-2. **Add Bot:** `git subtree add --prefix=apps/bot` from bot remote
-3. **Clean Board:** Remove `apps/board/.pipeline/`, `apps/board/.claude/`
-4. **Clean Bot:** Remove `apps/bot/.pipeline/`, `apps/bot/.claude/`, move `apps/bot/telegram-bot.service` to `vps/agentic-dev-bot.service`
-5. **Create root `package.json`** with workspaces config and scripts
-6. **Run `npm install`** at root to verify workspace resolution
-7. **Reconfigure Vercel:** Set root directory to `apps/board`
-8. **Update VPS:** Update systemd service paths, `git pull`, restart services
-9. **Archive old repos:** Set to read-only with pointer to monorepo
+1. **Remove legacy `telegram-bot/`** directory from root (leftover from previous extraction)
+2. **Add Board:** `git subtree add --prefix=apps/board` from board remote
+3. **Add Bot:** `git subtree add --prefix=apps/bot` from bot remote
+4. **Clean Board:** Remove `apps/board/.pipeline/`, `apps/board/.claude/`, `apps/board/pnpm-lock.yaml`, `apps/board/project.json` (contains secrets)
+5. **Clean Bot:** Remove `apps/bot/.pipeline/`, `apps/bot/.claude/`, `apps/bot/project.json` (contains secrets), move `apps/bot/telegram-bot.service` to `vps/agentic-dev-bot.service`
+6. **Create `.env.example` for Board** — Document all required environment variables
+7. **Reconcile `.gitignore`** — Consolidate board/bot `.gitignore` patterns with root, remove duplicates
+8. **Rename pipeline package** — `pipeline/package.json` name from `agentic-dev-pipeline` to `agentic-dev-pipeline-sdk`
+9. **Create root `package.json`** with workspaces config and scripts
+10. **Run `npm install`** at root to verify workspace resolution
+11. **Reconfigure Vercel:** See Vercel deployment section for exact settings
+12. **Update VPS:** See VPS migration checklist below
+13. **Verify production** — Board deploys on Vercel, Bot + Worker run on VPS
+14. **Archive old repos** — Set to read-only with pointer to monorepo (only after production is stable)
+
+**Note on git history:** `git blame` works after `git subtree add`, but `git log --follow` does not track renames across the subtree boundary. This is a minor limitation.
 
 ---
 
@@ -135,9 +144,12 @@ All commits preserved, `git blame` works.
 ### Board — Vercel
 
 Vercel project settings:
-- **Root Directory:** `apps/board`
-- **Build Command:** `npm run build` (Vercel detects Next.js)
-- **Install Command:** `npm install` (runs at monorepo root, Vercel supports npm workspaces)
+- **Root Directory:** *(repo root, not `apps/board`)*
+- **Build Command:** `npm run build -w board`
+- **Output Directory:** `apps/board/.next`
+- **Install Command:** `npm install` (runs at repo root, resolves all workspaces)
+
+Setting root directory to the repo root (not `apps/board`) ensures `npm install` runs at the monorepo level where the workspaces config lives. The workspace-scoped build command and explicit output directory handle the rest.
 
 Environment variables, domain (`app.agentic-dev.xyz`), preview deploys — all unchanged.
 
@@ -155,6 +167,17 @@ vps/
 Bot service working directory change:
 - Before: `/home/claude-dev/agentic-dev-telegram-bot`
 - After: `/home/claude-dev/agentic-dev-pipeline/apps/bot`
+
+### VPS Migration Checklist
+
+1. `cd /home/claude-dev/agentic-dev-pipeline && git pull` — Get monorepo with apps
+2. `npm install` — Install all workspace dependencies at root
+3. `sudo cp vps/agentic-dev-bot.service /etc/systemd/system/` — Install new bot service
+4. `sudo systemctl daemon-reload`
+5. Stop old bot service (if running from separate repo)
+6. `sudo systemctl enable --now agentic-dev-bot.service` — Start bot from monorepo
+7. Verify bot responds on Telegram
+8. Remove old `/home/claude-dev/agentic-dev-telegram-bot` clone once verified
 
 ### Deployment Flow
 
@@ -254,9 +277,17 @@ Board and Bot within the monorepo import directly from `../../pipeline` — no m
 
 ---
 
-## Open Questions
+## Rollback Plan
 
-None — all decisions made during design discussion.
+Old repos remain fully functional and are NOT archived until production has been verified stable for at least one week. If issues arise:
+
+1. **Board:** Revert Vercel root directory setting to point at old repo
+2. **Bot:** Restart old systemd service pointing at old repo clone on VPS
+3. **Pipeline Worker:** Unaffected (paths unchanged)
+
+## Supabase Migrations
+
+Board's `supabase/` directory remains the canonical location for schema migrations. Bot's `002_telegram_users.sql` is a standalone migration that was already applied — it stays in `apps/bot/` for reference but is not part of an active migration flow.
 
 ---
 
