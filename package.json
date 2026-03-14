@@ -6,11 +6,11 @@
     "apps/*"
   ],
   "scripts": {
-    "dev:board": "npm run dev -w board",
-    "dev:bot": "npm run dev -w bot",
+    "dev:board": "npm run dev -w apps/board",
+    "dev:bot": "npm run dev -w apps/bot",
     "dev": "npm run dev:board & npm run dev:bot",
-    "build:board": "npm run build -w board",
-    "start:bot": "npm run start -w bot",
-    "lint": "npm run lint -w board"
+    "build:board": "npm run build -w apps/board",
+    "start:bot": "npm run start -w apps/bot",
+    "lint": "npm run lint -w apps/board"
   }
 }
