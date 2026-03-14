@@ -70,8 +70,7 @@ Beispiel:
 
 ### 4. Implementieren
 - Folge den Code-Konventionen aus `CLAUDE.md`
-- Implementiere alle States: Default, Hover, Active, Loading, Empty, Error
-- Responsive: Mobile-first, dann Desktop erweitern
+- Folge den Implementierungs-Standards (siehe unten)
 
 ### 5. Shared Logic
 Hooks und Types gehören in den Shared-Pfad (aus `project.json`), nicht in die Apps.
