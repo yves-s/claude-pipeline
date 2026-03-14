@@ -1,0 +1,16 @@
+{
+  "name": "agentic-dev-pipeline",
+  "private": true,
+  "workspaces": [
+    "pipeline",
+    "apps/*"
+  ],
+  "scripts": {
+    "dev:board": "npm run dev -w board",
+    "dev:bot": "npm run dev -w bot",
+    "dev": "npm run dev:board & npm run dev:bot",
+    "build:board": "npm run build -w board",
+    "start:bot": "npm run start -w bot",
+    "lint": "npm run lint -w board"
+  }
+}
